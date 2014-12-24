@@ -58,7 +58,7 @@
              ("Book" is of ten <br> <span style = "margin-left: 50px;"> subtypes: books, proceedings, PhD theses, etc.)</span>
         <li> No user manual: relevant instructions are made visible by hovering on nearby info button.
         <li> Use of a GNU General Public License MySQL database.
-        <li> A hobby project, no commercial intents. See <a href =https://github.com/pwormer/PWRef"> for the sources </a>.
+        <li> A hobby project, no commercial intents. See <a href="https://github.com/pwormer/PWRef"> for the sources </a>.
         <li> All  <span style = 'font-variant: small-caps;'>html, css, javascript, php</span> sources are freely available, but ...
         <li> <span style = "margin-left: 50px;"><i>no warranties: Paul Wormer is a rooky web programmer.</i></span>
     </ul>
