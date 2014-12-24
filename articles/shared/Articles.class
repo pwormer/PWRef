@@ -1,0 +1,1305 @@
+﻿<?php
+    /*
+     *  Definition  of class Article
+     */
+    class Article {
+        /*  Properties
+         *      volume
+         *      year
+         *      title
+         *      journal
+         *      issn
+         *      begin_page
+         *      end_page
+         *      nr_of_authors
+         *      authors[$author_number][0] (is author's first name and/or initials)
+         *      authors[$author_number][1] (is author's last name)
+         *                     with: ($author_number = 0, 1, ..., nr_of_authors-1)
+         *      project
+         *      url
+         *      arXiv
+         *      doi
+         *
+         *  Public methods:
+         *      Create_article($authors, $title, $journal, $issn, $volume, $begin_page, $end_page,
+         *                     $year, $project, $url, $arXiv, $doi)
+         *      Store_article()             [Into database]
+         *      Update_article()            [In database]
+         *      Retrieve_article($id)       [From database]
+         *      Delete_article($id)         [From database]
+         *      List_art_properties($type)
+         *      Tabulate_article_properties($action, $post);        [Tabulate as <form method = "POST" action = "$action">]
+         *      Tabulate_article_notall_properties($self, $post);   [Tabulate as <form method = "POST" action = "$self">
+         *
+         *  Private methods
+         *      html2tex($title)
+         *      UTF2TeX($code)
+         *      UTF2ASCII($code)
+         *      Sanitize_input(&$authors, &$vars)
+         *      Get_author_id($author_last_name, $author_first_name)
+         *      Get_journal_id($journal_name, $issn)
+         *      Find_journal($selected_journal)
+         *      Find_auth($author_last_name, $author_first_name)
+         */
+        public  $authors = array();
+        public  $title;
+        public  $journal;
+        public  $issn;
+        public  $volume;
+        public  $begin_page;
+        public  $end_page;
+        public  $year;
+        public  $nr_of_authors;
+        public  $project;
+        public  $url;
+        public  $arXiv;
+        public  $doi;
+
+        public function Create_article($authors, $title, $journal, $issn, $volume, $begin_page, $end_page,
+                                       $year, $project, $url, $arXiv, $doi) {
+
+            $this -> authors    =  $authors;
+            $this -> title      =  $title;
+            $this -> journal    =  $journal;
+            $this -> issn       =  $issn;
+            $this -> volume     =  $volume;
+            $this -> begin_page =  $begin_page;
+            $this -> end_page   =  $end_page;
+            $this -> year       =  $year;
+            $this -> project    =  $project;
+            $this -> url        =  $url;
+            $this -> arXiv      =  $arXiv;
+            $this -> doi        =  $doi;
+            $this -> nr_of_authors = count($authors);
+
+        }
+
+        public function Store_article() {
+        /*
+         *  Add one row to database table "$tab_arts"  describing  a new reference to an article.
+         *
+         *  Add as many rows to table $tab_AA as the new article has authors.
+         *
+         *  Check if $tab_journals and $tab_authors need to be augmented, if so do it.
+         *
+         *  Function calls:  Sanitize_input, Get_journal_id, Get_author_id.
+         *
+         */
+            global $pubDB, $tab_arts;
+
+            global  $tab_arts_art_id, $tab_arts_journal_id, $tab_arts_year, $tab_arts_volume, $tab_arts_title,
+                    $tab_arts_begin_page, $tab_arts_end_page, $tab_arts_project, $tab_arts_arXiv,
+                    $tab_arts_doi, $tab_arts_url;
+
+            global $tab_AA;
+            global $tab_AA_art_id, $tab_AA_aut_id;
+
+            $vars = array();
+            $vars['title']      = $this -> title;
+            $vars['journal']    = $this -> journal;
+            $vars['issn']       = $this -> issn;
+            $vars['volume']     = $this -> volume;
+            $vars['begin_page'] = $this -> begin_page;
+            $vars['end_page']   = $this -> end_page;
+            $vars['year']       = $this -> year;
+            $vars['project']    = $this -> project;
+            $vars['url']        = $this -> url;
+            $vars['arXiv']      = $this -> arXiv;
+            $vars['doi']        = $this -> doi;
+            $authors            = $this -> authors;
+
+            //Truncate and encode:
+            $this -> Sanitize_input($authors, $vars);
+
+            $title      = $vars['title'];
+            $journal    = $vars['journal'];
+            $issn       = $vars['issn'];
+            $volume     = $vars['volume'];
+            $begin_page = $vars['begin_page'];
+            $end_page   = $vars['end_page'];
+            $year       = $vars['year'];
+            $project    = $vars['project'];
+            $url        = $vars['url'];
+            $arXiv      = $vars['arXiv'];
+            $doi        = $vars['doi'];
+
+            // Check if $year is set and, if so, if it is valid.
+            if ( empty($year) ) {
+                $year = 1;      // Empty input year and year 0 are changed to 1
+            }
+            else {      // Is  year integer and in required range?
+                $future =  date("Y") + 10;        // 10 years from now.
+                if ( !preg_match('/^\d+$/', $year) ) {
+                    die("<br><b>Error in Store_article:</b> Year must  contain digits only,
+                          input year is: <b>{$year}</b>. <br>");
+                }
+                if ($year > $future)  {
+                    die("<br><b>Error in Store_article:</b> Year must be earlier than $future.
+                        Input year = " . sprintf("%d", $year) . "<br><br>\n");
+                }
+            }
+
+            $journal_id = $this -> Get_journal_id($journal, $issn);
+
+            $journal_id = $pubDB->real_escape_string($journal_id);
+            $year       = $pubDB->real_escape_string($year);
+            $volume     = $pubDB->real_escape_string($volume);
+            $title      = $pubDB->real_escape_string($title);
+            $begin_page = $pubDB->real_escape_string($begin_page);
+            $end_page   = $pubDB->real_escape_string($end_page);
+            $project    = $pubDB->real_escape_string($project);
+            $arXiv      = $pubDB->real_escape_string($arXiv);
+            $doi        = $pubDB->real_escape_string($doi);
+            $url        = $pubDB->real_escape_string($url);
+            $sql        =  "INSERT INTO $tab_arts
+                               ($tab_arts_journal_id, $tab_arts_year, $tab_arts_volume,
+                                $tab_arts_title, $tab_arts_begin_page, $tab_arts_end_page,
+                                $tab_arts_project, $tab_arts_arXiv, $tab_arts_doi, $tab_arts_url
+                               )
+                            VALUES
+                               ($journal_id,        $year,          '$volume',
+                                '$title',          '$begin_page',   '$end_page',
+                                '$project',        '$arXiv',        '$doi',
+                                '$url'
+                               )
+                           ";
+
+            $results    = $pubDB->query($sql) or
+                die("<br><b>Insert error in $tab_arts:</b> " . $pubDB->error);
+
+            $new_art_id = $pubDB->insert_id;
+
+            // For each author store a link to the newly entered article:
+
+            foreach ($authors as $author) {
+                $author_first_name = $author[0];
+                $author_last_name  = $author[1];
+                $author_id         = $this -> Get_author_id($author_last_name, $author_first_name);
+                $author_id         = $pubDB->real_escape_string($author_id);
+                $sql               = "INSERT INTO $tab_AA
+                                           ($tab_AA_art_id,     $tab_AA_aut_id)
+                                      VALUES
+                                           ($new_art_id,          $author_id)";
+
+                $results           = $pubDB->query($sql) or
+                    die("<b>Insert error in $tab_AA:</b> " . $pubDB->error);
+            }
+            return 1;  // return true if everything OK
+    }
+
+        public function Update_article($art_id) {
+        /*
+         *  Update row $tab_arts_art_id = $art_id of $tab_arts
+         */
+            global $pubDB;
+            global $tab_arts;
+            global $tab_arts_art_id,   $tab_arts_journal_id, $tab_arts_year,
+                   $tab_arts_volume,   $tab_arts_title,      $tab_arts_begin_page,
+                   $tab_arts_end_page, $tab_arts_project,    $tab_arts_arXiv,
+                   $tab_arts_doi,      $tab_arts_url;
+
+            $year       = htmlentities($this -> year      , ENT_COMPAT,  'UTF-8');
+            $volume     = htmlentities($this -> volume    , ENT_COMPAT,  'UTF-8');
+            $begin_page = htmlentities($this -> begin_page, ENT_COMPAT,  'UTF-8');
+            $end_page   = htmlentities($this -> end_page  , ENT_COMPAT,  'UTF-8');
+            $project    = htmlentities($this -> project   , ENT_COMPAT,  'UTF-8');
+            $url        = htmlentities($this -> url       , ENT_COMPAT,  'UTF-8');
+            $arXiv      = htmlentities($this -> arXiv     , ENT_COMPAT,  'UTF-8');
+            $doi        = htmlentities($this -> doi       , ENT_COMPAT,  'UTF-8');
+            $title      = htmlentities($this -> title     , ENT_COMPAT,  'UTF-8');
+
+            $year       = $pubDB->real_escape_string($year);
+            $volume     = $pubDB->real_escape_string($volume);
+            $begin_page = $pubDB->real_escape_string($begin_page);
+            $end_page   = $pubDB->real_escape_string($end_page);
+            $project    = $pubDB->real_escape_string($project);
+            $url        = $pubDB->real_escape_string($url);
+            $arXiv      = $pubDB->real_escape_string($arXiv);
+            $doi        = $pubDB->real_escape_string($doi);
+            $title      = $pubDB->real_escape_string($title);
+
+                             $sql  = "UPDATE $tab_arts
+                                      SET ";
+            if ($year)       $sql .= $tab_arts_year . "       =  $year,        ";
+            if ($volume)     $sql .= $tab_arts_volume . "     = '$volume',     ";
+            if ($begin_page) $sql .= $tab_arts_begin_page . " = '$begin_page', ";
+            if ($end_page)   $sql .= $tab_arts_end_page . "   = '$end_page',   ";
+            if ($project)    $sql .= $tab_arts_project . "    = '$project',    ";
+            if ($url)        $sql .= $tab_arts_url . "        = '$url',        ";
+            if ($arXiv)      $sql .= $tab_arts_arXiv . "      = '$arXiv',      ";
+            if ($doi)        $sql .= $tab_arts_doi . "        = '$doi',        ";
+            if ($title)      $sql .= $tab_arts_title . "      = '$title',      ";
+
+            $sql  = preg_replace('/,\s+$/', '', $sql);     // rm trailing comma
+            $sql .= " WHERE $tab_arts_art_id     =  $art_id;";
+
+            $pubDB->query($sql) or
+                die("<b>Update error in method update_article</b> " . $pubDB->error);
+        }
+
+        public function Retrieve_article($selected_art_id) {
+        /*
+         *  Read and clean all properties of an object of class "Article".
+         */
+            global  $database, $pubDB;
+            global  $tab_arts, $tab_authors, $tab_journals, $tab_AA;
+
+            global  $tab_arts_art_id, $tab_arts_journal_id, $tab_arts_year, $tab_arts_volume, $tab_arts_title,
+                    $tab_arts_begin_page, $tab_arts_end_page, $tab_arts_project, $tab_arts_arXiv,
+                    $tab_arts_doi, $tab_arts_url;
+
+            global  $tab_journals_id, $tab_journals_name, $tab_journals_issn;
+
+            global  $tab_AA_art_id, $tab_AA_aut_id;
+
+            global  $tab_authors_id, $tab_authors_last_name,  $tab_authors_first_name;
+
+            global  $filenames;
+
+            $clean1 =  $filenames['clean1'];
+            $clean2 =  $filenames['clean2'];
+            if (file_exists($clean1) ) {
+                require_once $clean1;
+            }
+            elseif (file_exists($clean2) ) {
+                require_once $clean2;
+            }
+            else {
+                echo "Function clean_html()  not found. Execution stops <br>\n";
+                exit();
+            }
+
+            // Load all columns of table $tab_arts  with row pertaining to $selected_art_id.
+
+            $sql         = "SELECT * FROM $tab_arts
+                            WHERE  $tab_arts.$tab_arts_art_id = $selected_art_id";
+
+            $results     = $pubDB->query($sql) or die('<b>Select Error:</b> ' . $pubDB->error);
+
+            if ($results->num_rows === 0) {
+                echo "<div style='position: relative: top: 30px;'>&nbsp;</div>";
+                die("Article {$selected_art_id} not in table \"{$tab_arts}\" of database
+                    \"$database.\"");
+            }
+
+            $art              = $results->fetch_array(MYSQLI_ASSOC);
+            $this->year       = $art[$tab_arts_year];
+            $this->volume     = $art[$tab_arts_volume];
+            $this->title      = $art[$tab_arts_title];
+            $this->begin_page = $art[$tab_arts_begin_page];
+            $this->end_page   = $art[$tab_arts_end_page];
+            $this->project    = $art[$tab_arts_project];
+            $this->url        = $art[$tab_arts_url];
+            $this->arXiv      = $art[$tab_arts_arXiv];
+            $this->doi        = $art[$tab_arts_doi];
+
+
+            // Set this->journal (name of journal) and this->issn (ISSN of journal)
+            $sql            = "SELECT     $tab_journals_name,
+                                          $tab_journals_issn
+                               FROM       $tab_journals AS j
+                               INNER JOIN $tab_arts     AS p
+                               ON    j.$tab_journals_id = p.$tab_arts_journal_id
+                               WHERE p.$tab_arts_art_id = $selected_art_id";
+
+            $results        =  $pubDB->query($sql) or die('<b>Select Error:</b> ' . $pubDB->error);
+            $row            =  $results->fetch_row();
+            $this->journal  =  $row[0];
+            $this->issn     =  $row[1];
+
+            $sql                =  "SELECT   a.$tab_authors_first_name, a.$tab_authors_last_name
+                                    FROM       $tab_authors  AS a
+                                    INNER JOIN $tab_AA       AS l
+                                    INNER JOIN $tab_arts     AS p
+                                    ON    p.$tab_arts_art_id   = l.$tab_AA_art_id
+                                    AND   l.$tab_AA_aut_id     = a.$tab_authors_id
+                                    WHERE p.$tab_arts_art_id   = $selected_art_id";
+
+            $results            =   $pubDB->query($sql) or
+                                      die('<b>Select Error:</b> ' . $pubDB->error);
+
+            // Clean (decode and purify) info from database in case database is compromised:
+
+            $this->year         = clean_html($this->year);
+            $this->volume       = clean_html($this->volume);
+            $this->title        = clean_html($this->title);
+            $this->begin_page   = clean_html($this->begin_page);
+            $this->end_page     = clean_html($this->end_page);
+            $this->project      = clean_html($this->project);
+            $this->url          = clean_html($this->url);
+            $this->arXiv        = clean_html($this->arXiv);
+            $this->doi          = clean_html($this->doi);
+
+            $this->journal      = clean_html($this->journal);
+            $this->issn         = clean_html($this->issn);
+
+            $i = 0;
+            while ( $auth = $results->fetch_array(MYSQLI_NUM) ) {
+                $this->authors[$i][0] = clean_html($auth[0]);
+                $this->authors[$i][1] = clean_html($auth[1]);
+                $i++;
+            }
+            $this->nr_of_authors = $i;
+        }
+
+        public function Delete_article($article_id) {
+            global  $pubDB;
+
+            global  $tab_arts, $tab_authors,  $tab_AA;
+            global  $tab_arts_art_id;
+            global  $tab_AA_art_id,  $tab_AA_aut_id;
+            global  $tab_authors_id;
+
+            global  $tab_books,  $tab_BA, $tab_BE;
+            global  $tab_books_id;
+            global  $tab_BA_book_id, $tab_BE_book_id;
+            global  $tab_BA_author_id, $tab_BE_editor_id;
+
+            $sql = "DELETE      p, l
+                    FROM        $tab_arts   AS p
+                    INNER JOIN  $tab_AA     AS l
+                    ON          p.$tab_arts_art_id = l.$tab_AA_art_id
+                    WHERE       p.$tab_arts_art_id = $article_id";
+
+            $pubDB->query($sql) or
+               die('<b>Delete error in  method Delete_article of Article.class:</b> ' .
+                    $pubDB->error);
+
+            // Delete ALL dangling authors (article authors, book authors, book editors):
+            $sql = "DELETE a FROM $tab_authors AS a
+                    WHERE !EXISTS(SELECT l.$tab_AA_aut_id
+                                  FROM     $tab_AA AS l
+                                  WHERE  l.$tab_AA_aut_id    = a.$tab_authors_id)
+                    AND   !EXISTS(SELECT b.$tab_BA_author_id
+                                  FROM     $tab_BA AS b
+                                  WHERE  b.$tab_BA_author_id = a.$tab_authors_id)
+                    AND   !EXISTS(SELECT e.$tab_BE_editor_id
+                                  FROM     $tab_BE AS e
+                                  WHERE  e.$tab_BE_editor_id = a.$tab_authors_id)
+                   ";
+
+            $pubDB->query($sql) or
+                die('<br><b>Delete error in  method Delete_article of Article.class</b>
+                    (deleting dangling authors): <br>' .
+                    $pubDB->error);
+
+        }
+
+        public function Tabulate_article_properties($action, $post) {
+        /*
+         *  Tabulate properties of an object of class Article.
+         *
+         *  Tabulate as <form method = "POST" action = "$action">.
+         *  Entries are tabulated as input fields of the <form>,
+         *  so that the input can be modified before submitting.
+         *
+         *  Upon submittal, script action "$action" is invoked
+         *  with method = "POST".
+         *
+         *  As usual array $_POST contains input variables,  but
+         *  *in addition*  $_POST['switch'] is set to $post!
+         *
+         */
+        ?>
+            <style>
+                .headings {
+                    text-align: center;
+                    background-image: linear-gradient(to bottom, rgb(215, 230, 255) 0%, rgb(235, 240,255) 100%);
+                }
+            </style>
+        <?php
+            $journal    = htmlentities($this -> journal,    ENT_COMPAT,  'UTF-8');
+            $year       = htmlentities($this -> year,       ENT_COMPAT,  'UTF-8');
+            $volume     = htmlentities($this -> volume,     ENT_COMPAT,  'UTF-8');
+            $title      = htmlentities($this -> title,      ENT_COMPAT,  'UTF-8');
+            $issn       = htmlentities($this -> issn,       ENT_COMPAT,  'UTF-8');
+            $begin_page = htmlentities($this -> begin_page, ENT_COMPAT,  'UTF-8');
+            $end_page   = htmlentities($this -> end_page,   ENT_COMPAT,  'UTF-8');
+            $project    = htmlentities($this -> project,    ENT_COMPAT,  'UTF-8');
+            $arXiv      = htmlentities($this -> arXiv,      ENT_COMPAT,  'UTF-8');
+            $doi        = htmlentities($this -> doi,        ENT_COMPAT,  'UTF-8');
+            $url        = htmlentities($this -> url,        ENT_COMPAT,  'UTF-8');
+
+            $authors    = array();
+
+            for ($i=0; $i < $this->nr_of_authors; $i++) {
+                $authors[$i][0] = htmlentities($this->authors[$i][0], ENT_COMPAT,  'UTF-8');
+                $authors[$i][1] = htmlentities($this->authors[$i][1], ENT_COMPAT,  'UTF-8');
+            }
+
+        ?>
+            <form action = "<?=$action?>" method = "POST">
+                <h4 class="headings">Author(s)</h4>
+
+                <!-- Tooltip: -->
+                <div id = "outer">
+                    <img src = "../shared/info.jpg" class = "info"/>
+                    <div id = "tooltip4" class = "subhelp">
+                        Hit the "Add author" button when an extra author must be added.
+                        Blank an author's first and last name field when the author must be removed
+                        from the list.
+                    </div>
+                </div>
+                <!-- End tooltip -->
+
+                <br><br>
+        <?php   for ($i=0; $i < $this->nr_of_authors; $i++) {   ?>
+
+                    <div id = "authorDiv_<?=$i?>">
+                        <b>First name:  </b>&nbsp;
+                            <input
+                                type  = "text"
+                                name  = "first_name_<?=$i?>"
+                                value = "<?=$authors[$i][0]?>"
+                                size  = "20" maxlength = "50"
+                            />&nbsp;&nbsp;
+                        <b>Last name:  </b>&nbsp;
+                            <input
+                                type  = "text"
+                                name  = "last_name_<?=$i?>"
+                                value = "<?=$authors[$i][1]?>"
+                                size  = 50 maxlength = 100
+                            /><br/><br/>
+                    </div>
+
+        <?php   }       ?>
+
+                <button id = "addBtn"  type= "button"
+                    style = "margin-left: 250px; color: blue;">
+                    Add author
+                </button>
+
+                <h4 class="headings">Article reference</h4>
+                <b>Title:     </b>&nbsp;<input  type = "text"
+                                                name = "title"
+                                                value = "<?=$title?>"
+                                                size = "80" maxlength = "512"
+                                        /> <br><br/>
+                <b>Journal:   </b>&nbsp;<input  type = "text"
+                                                name = "journal"
+                                                value = "<?=$journal?>"
+                                                size = "50" maxlength = "70"
+                                        /> &nbsp; &nbsp;
+                <b>ISSN:      </b>&nbsp;<input  type = "text"
+                                                name = "issn"
+                                                value = "<?=$issn?>"
+                                                size = "9" maxlength = "9"
+                                        /> <br><br/>
+                <b>Volume:    </b>&nbsp;<input  type = "text"
+                                                name = "volume"
+                                                value = "<?=$volume?>"
+                                                size = "5" maxlength = "15"
+                                        /> &nbsp; &nbsp;
+                <b>Year:      </b>&nbsp;<input  type = "text"
+                                                name = "year"
+                                                value = "<?=$year?>"
+                                                size = "4" maxlength = "4"
+                                        /> <br><br/>
+                <b>Begin page:</b>&nbsp;<input  type = "text"
+                                                name = "begin_page"
+                                                value = "<?=$begin_page?>"
+                                                size = "8" maxlength = "10"
+                                        /> &nbsp; &nbsp;
+                <b>End page:  </b>&nbsp;<input  type = "text"
+                                                name = "end_page"
+                                                value = "<?=$end_page?>"
+                                                size = "8" maxlength = "10"
+                                        /> <br><br/>
+                <h4 class="headings">Other info</h4>
+                <b>URL:       </b>&nbsp;<input  type = "text"
+                                                name = "url"
+                                                value = "<?=$url?>"
+                                                size = "60" maxlength = "255"
+                                        /> <br><br/>
+                <b>Project:   </b>&nbsp;<input  type = "text"
+                                                name = "project"
+                                                value = "<?=$project?>"
+                                                size = "25" maxlength = "70"
+                                        /> <br><br/>
+                <b>ArXiv:     </b>&nbsp;<input  type = "text"
+                                                name = "arXiv"
+                                                value = "<?=$arXiv?>"
+                                                size = "12" maxlength = "12"
+                                        /> <br><br/>
+                <b>DOI:       </b>&nbsp;<input  type = "text"
+                                                name = "doi"
+                                                value = "<?=$doi?>"
+                                                size = "36" maxlength = "50"
+                                        /> <br><br/>
+
+                <br>
+
+                To store the input fields above as a new record in the database, hit:
+                <br>
+                <button class="goBtn"  type = "submit" name = "switch" value = "<?=$post?>">
+                    Store
+                </button>
+
+            </form>
+            <script type = "text/javascript">
+                $(function() {
+                /* Add author input line */
+
+                    var $max_authors  = 250; // Maximum number of authors (to defeat spammmers/hackers)
+                    var first = true;
+                    var nr;
+
+                    // Event handlers:
+                    $("form").keydown(catchEnter);   // No submission when Enter is hit in input fields
+                    $("#addBtn").click(addLine);
+
+                    function addLine(event) {
+
+                    /* Event handler for click on addBtn */
+
+                        event.preventDefault();
+                        if (first) {
+                            nr    = <?=$i?> - 1;
+                            first = false;
+                        }
+                        var lastDiv = $("form #authorDiv_" + nr);
+
+                        nr++;
+                        if (nr > $max_authors - 1) {
+                            alert("Warning: Number of authors is " + nr +
+                            "\n Author list will be truncated at " + $max_authors + " names");
+                            nr--;
+                            return;
+                        }
+
+                        var newDiv  = lastDiv.clone(true);
+                        lastDiv.after(newDiv);
+                        newDiv.attr("id", "authorDiv_" + nr);
+
+                        // Note on a pecularity of FireFox:
+                        //    When value is specified in attr(), Firefox copies
+                        //    the content of the previous value field to the screen.
+
+                        newDiv.find("input").eq(0).attr("name", "first_name_" + nr);
+                        newDiv.find("input").eq(0).val("");
+                        newDiv.find("input").eq(1).attr("name", "last_name_" + nr);
+                        newDiv.find("input").eq(1).val("");
+                    }
+                });
+                    function catchEnter(event) {
+                    /* Catch key 13 (enter key) */
+                        if (event.keyCode === 13) {
+                            event.preventDefault();
+                        }
+                    }
+            </script>
+        <?php
+            return;
+        }
+
+        public function Tabulate_article_notall_properties($action, $post) {
+        /*
+         *  Tabulate all properties contained in table $tab_arts.
+         *  That is, all properties of the object, except authors and journal,
+         *  are tabulated.
+         *
+         *  Tabulation is as input fields of
+         *       <form method = "POST" action = "$action">
+         *
+         *  Upon submittal, script action "$action" is invoked
+         *  with method = "POST".
+         *
+         *  As usual array $_POST contains input variables,  but
+         *  *in addition*  $_POST['switch'] is set to $post!
+         */
+        ?>
+            <style>
+                .headings {
+                    text-align: center;
+                    background-image: linear-gradient(to bottom, rgb(215, 230, 255) 0%, rgb(235, 240,255) 100%);
+                }
+            </style>
+        <?php
+            $journal    = htmlentities($this -> journal,    ENT_COMPAT,  'UTF-8');
+            $year       = htmlentities($this -> year,       ENT_COMPAT,  'UTF-8');
+            $volume     = htmlentities($this -> volume,     ENT_COMPAT,  'UTF-8');
+            $title      = htmlentities($this -> title,      ENT_COMPAT,  'UTF-8');
+            $issn       = htmlentities($this -> issn,       ENT_COMPAT,  'UTF-8');
+            $begin_page = htmlentities($this -> begin_page, ENT_COMPAT,  'UTF-8');
+            $end_page   = htmlentities($this -> end_page,   ENT_COMPAT,  'UTF-8');
+            $project    = htmlentities($this -> project,    ENT_COMPAT,  'UTF-8');
+            $arXiv      = htmlentities($this -> arXiv,      ENT_COMPAT,  'UTF-8');
+            $doi        = htmlentities($this -> doi,        ENT_COMPAT,  'UTF-8');
+            $url        = htmlentities($this -> url,        ENT_COMPAT,  'UTF-8');
+
+            $authors    = array();
+            for ($i=0; $i < $this->nr_of_authors; $i++) {
+                $authors[$i][0] = htmlentities($this->authors[$i][0], ENT_COMPAT,  'UTF-8');
+                $authors[$i][1] = htmlentities($this->authors[$i][1], ENT_COMPAT,  'UTF-8');
+            }
+
+        ?>
+
+            <form action = "<?=$action?>" method = "POST">
+                <div style = "border: 1px solid lightblue; padding: 15px;">
+                    <br>
+                    <b>Title:     </b>&nbsp;<input  type = "text"
+                                                    name = "title"
+                                                    value = "<?=$title?>"
+                                                    size = "90" maxlength = "512"
+                                            /> <br><br/>
+                    <b>Volume:    </b>&nbsp;<input  type = "text"
+                                                    name = "volume"
+                                                    value = "<?=$volume?>"
+                                                    size = "5" maxlength = "15"
+                                            /> &nbsp; &nbsp;
+                    <b>Year:      </b>&nbsp;<input  type = "text"
+                                                    name = "year"
+                                                    value = "<?=$year?>"
+                                                    size = "4" maxlength = "4"
+                                            /> <br><br/>
+                    <b>Begin page:</b>&nbsp;<input  type = "text"
+                                                    name = "begin_page"
+                                                    value = "<?=$begin_page?>"
+                                                    size = "8" maxlength = "10"
+                                            /> &nbsp; &nbsp;
+                    <b>End page:  </b>&nbsp;<input  type = "text"
+                                                    name = "end_page"
+                                                    value = "<?=$end_page?>"
+                                                    size = "8" maxlength = "10"
+                                            /> <br><br/>
+                    <b>URL:       </b>&nbsp;<input  type = "text"
+                                                    name = "url"
+                                                    value = "<?=$url?>"
+                                                    size = "60" maxlength = "255"
+                                            /> <br><br/>
+                    <b>Project:   </b>&nbsp;<input  type = "text"
+                                                    name = "project"
+                                                    value = "<?=$project?>"
+                                                    size = "25" maxlength = "70"
+                                            /> <br><br/>
+                    <b>ArXiv:     </b>&nbsp;<input  type = "text"
+                                                    name = "arXiv"
+                                                    value = "<?=$arXiv?>"
+                                                    size = "12" maxlength = "12"
+                                            /> <br><br/>
+                    <b>DOI:       </b>&nbsp;<input  type = "text"
+                                                    name = "doi"
+                                                    value = "<?=$doi?>"
+                                                    size = "36" maxlength = "50"
+                                            /> <br>
+                </div>
+                <br>
+                To overwrite the record with the info above hit:
+                <br>
+                <button class="goBtn"  type = "submit" name = "switch" value = "<?=$post?>">
+                    Update
+                </button>
+
+            </form>
+        <?php
+        }
+        public function List_art_properties($type) {
+        /*  This method lists an object of class "Article" (a reference to an article)
+         *  in a format determined by argument $type.
+         *
+         *      $type
+         *            = "add"        ==> output can be added to Initialize_db.php.
+         *            = "html"       ==> output is in HTML format.
+         *            = "input"      ==> output can be used as interactive input for PWRef.
+         *            = "pretty"     ==> output is in a common reference style (pretty).
+         *            = "bibTeX"     ==> output is in bibTeX format.
+         */
+
+            switch ($type) {
+                case "add":
+                    echo "\$authors    =  array( <br>";
+                    for ($i=0; $i < $this->nr_of_authors - 1; $i++) {
+                       $first_name = htmlentities($this->authors[$i][0], ENT_COMPAT,  'UTF-8');
+                       $last_name  = htmlentities($this->authors[$i][1], ENT_COMPAT,  'UTF-8');
+                       echo "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;array(\"{$first_name}\", \"{$last_name}\"),<br> \n ";
+                    }
+                    $m = $this->nr_of_authors - 1;      // Last author
+                    $first_name =  htmlentities($this->authors[$m][0], ENT_COMPAT,  'UTF-8');
+                    $last_name  =  htmlentities($this->authors[$m][1], ENT_COMPAT,  'UTF-8');
+                    echo "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;array(\"{$first_name}\", \"{$last_name}\")<br>  ); \n<br> ";
+
+                    echo "\$title      = \"" . htmlentities($this->title, ENT_COMPAT,  'UTF-8')      . "\";<br>\n";
+                    echo "\$journal    = \"" . htmlentities($this->journal, ENT_COMPAT,  'UTF-8')    . "\";<br>\n";
+                    echo "\$issn       = \"" . htmlentities($this->issn, ENT_COMPAT,  'UTF-8')       . "\";<br>\n";
+                    echo "\$begin_page = \"" . htmlentities($this->begin_page, ENT_COMPAT,  'UTF-8') . "\";<br>\n";
+                    echo "\$end_page   = \"" . htmlentities($this->end_page, ENT_COMPAT,  'UTF-8')   . "\";<br>\n";
+                    echo "\$volume     = \"" . htmlentities($this->volume, ENT_COMPAT,  'UTF-8')     . "\";<br>\n";
+                    echo "\$year       =   " . htmlentities($this->year, ENT_COMPAT,  'UTF-8')       . ";  <br>\n";
+                    echo "\$project    = \"" . htmlentities($this->project, ENT_COMPAT,  'UTF-8')    . "\";<br>\n";
+                    echo "\$url        = \"" . htmlentities($this->url, ENT_COMPAT,  'UTF-8')        . "\";<br>\n";
+                    echo "\$arXiv      = \"" . htmlentities($this->arXiv, ENT_COMPAT,  'UTF-8')      . "\";<br>\n";
+                    echo "\$doi        = \"" . htmlentities($this->doi, ENT_COMPAT,  'UTF-8')        . "\";<br>\n";
+                    echo "<br>\n";
+                    return;
+
+                case "input";
+                    echo "authors: <br>\n";
+                    for ($i=0; $i < $this->nr_of_authors - 1; $i++) {
+                       $first_name = htmlentities($this->authors[$i][0], ENT_COMPAT,  'UTF-8');
+                       $last_name  = htmlentities($this->authors[$i][1], ENT_COMPAT,  'UTF-8');
+                       echo $first_name . " " . $last_name . " and " . "<br>\n";
+                    }
+
+                    $m = $this->nr_of_authors - 1;    // Last author
+                    $first_name =  htmlentities($this->authors[$m][0], ENT_COMPAT,  'UTF-8');
+                    $last_name  =  htmlentities($this->authors[$m][1], ENT_COMPAT,  'UTF-8');
+                    echo $first_name . " " . $last_name  . "<br><br>\n";
+
+                    echo "title      = " . htmlentities($this->title, ENT_COMPAT,  'UTF-8')      . "<br>\n";
+                    echo "journal    = " . htmlentities($this->journal, ENT_COMPAT,  'UTF-8')    . "<br>\n";
+                    echo "issn       = " . htmlentities($this->issn, ENT_COMPAT,  'UTF-8')       . "<br>\n";
+                    echo "begin_page = " . htmlentities($this->begin_page, ENT_COMPAT,  'UTF-8') . "<br>\n";
+                    echo "end_page   = " . htmlentities($this->end_page, ENT_COMPAT,  'UTF-8')   . "<br>\n";
+                    echo "volume     = " . htmlentities($this->volume, ENT_COMPAT,  'UTF-8')     . "<br>\n";
+                    echo "year       = " . htmlentities($this->year, ENT_COMPAT,  'UTF-8')       . "<br>\n";
+                    echo "project    = " . htmlentities($this->project, ENT_COMPAT,  'UTF-8')    . "<br>\n";
+                    echo "url        = " . htmlentities($this->url, ENT_COMPAT,  'UTF-8')        . "<br>\n";
+                    echo "arXiv      = " . htmlentities($this->arXiv, ENT_COMPAT,  'UTF-8')      . "<br>\n";
+                    echo "doi        = " . htmlentities($this->doi, ENT_COMPAT,  'UTF-8')        . "<br>\n";
+                    echo "<br>\n";
+                    return;
+
+                case "pretty":
+                    $title      = ($this->title);
+                    $journal    = ($this->journal);
+                    $issn       = ($this->issn);
+                    $begin_page = ($this->begin_page);
+                    $end_page   = ($this->end_page);
+                    $volume     = ($this->volume);
+                    $year       = ($this->year);
+                    $project    = ($this->project);
+                    $url        = ($this->url);
+                    $arXiv      = ($this->arXiv);
+                    $doi        = ($this->doi);
+
+                    for ($i=0; $i < $this->nr_of_authors; $i++) {
+                        $first_name = ($this->authors[$i][0]);
+                        $last_name  = ($this->authors[$i][1]);
+                        echo "$first_name $last_name,  ";
+                    };
+
+                    if (!empty($title)) {
+                        $outstr = " <i>$title</i>, \n";
+                    }
+                    else {
+                        $outstr = "";
+                    };
+                    if (!empty($journal))     $outstr .= $journal. ", ";
+                    if (!empty($issn))        $outstr .= "ISSN:  $issn, ";
+                    if (!empty($begin_page))  $outstr .= $begin_page;
+                    if (!empty($end_page))    $outstr .= "&ndash;" . $end_page . ", ";
+                    else                      $outstr .= ", ";
+                    if (!empty($volume))      $outstr .= "<b> $volume</b> ";
+                    if (!empty($year))        $outstr .= " ($year)";
+                    if (!empty($project))     $outstr .= ".&nbsp; Project: $project";
+                    if (!empty($url))         $outstr .= ".&nbsp; URL: $url";
+                    if (!empty($arXiv))       $outstr .= ".&nbsp; arXiv: $arXiv";
+                    if (!empty($doi))         $outstr .= ".&nbsp; DOI: $doi";
+                    if (preg_match('/\.$/', $outstr) !== 1) $outstr .= ".";
+
+                    echo $outstr . "<br>\n";
+                    return;
+
+                case "html":
+                    $title      = htmlentities($this->title, ENT_COMPAT,  'UTF-8');
+                    $journal    = htmlentities($this->journal, ENT_COMPAT,  'UTF-8');
+                    $issn       = htmlentities($this->issn, ENT_COMPAT,  'UTF-8');
+                    $begin_page = htmlentities($this->begin_page, ENT_COMPAT,  'UTF-8');
+                    $end_page   = htmlentities($this->end_page, ENT_COMPAT,  'UTF-8');
+                    $volume     = htmlentities($this->volume, ENT_COMPAT,  'UTF-8');
+                    $year       = htmlentities($this->year, ENT_COMPAT,  'UTF-8');
+                    $project    = htmlentities($this->project, ENT_COMPAT,  'UTF-8');
+                    $url        = htmlentities($this->url, ENT_COMPAT,  'UTF-8');
+                    $arXiv      = htmlentities($this->arXiv, ENT_COMPAT,  'UTF-8');
+                    $doi        = htmlentities($this->doi, ENT_COMPAT,  'UTF-8');
+
+                    for ($i=0; $i < $this->nr_of_authors; $i++) {
+                        $first_name = htmlentities($this->authors[$i][0], ENT_COMPAT,  'UTF-8');
+                        $last_name  = htmlentities($this->authors[$i][1], ENT_COMPAT,  'UTF-8');
+                        echo "$first_name $last_name,  ";
+                    };
+
+                    if (!empty($title)) {
+                        $outstr = "&lt;i&gt;$title&lt;/i&gt;, \n";
+                    }
+                    else {
+                        $outstr = "";
+                    };
+                    if (!empty($journal))     $outstr .= $journal. ", ";
+                    if (!empty($issn   ))     $outstr .= "ISSN: $issn ";
+                    if (!empty($begin_page))  $outstr .= $begin_page;
+                    if (!empty($end_page))    $outstr .= "&ndash;" . $end_page . ", ";
+                    else                      $outstr .= ", ";
+                    if (!empty($volume))      $outstr .= "&lt;b&gt; $volume&lt;/b&gt; ";
+                    if (!empty($year))        $outstr .= " ($year)";
+                    if (!empty($project))     $outstr .= ".&nbsp; Project: $project";
+                    if (!empty($url))         $outstr .= ".&nbsp; URL: $url";
+                    if (!empty($arXiv))       $outstr .= ".&nbsp; arXiv: $arXiv";
+                    if (!empty($doi))         $outstr .= ".&nbsp; DOI: $doi";
+                    if (preg_match('/\.$/', $outstr) !== 1) $outstr .= ".";
+
+                    echo $outstr . "\n";
+                    return;
+
+                case "bibTeX":
+                    $title      = ($this->title);
+                    $journal    = ($this->journal);
+                    $issn       = ($this->issn);
+                    $begin_page = ($this->begin_page);
+                    $end_page   = ($this->end_page);
+                    $volume     = ($this->volume);
+                    $year       = ($this->year);
+                    $project    = ($this->project);
+                    $url        = ($this->url);
+                    $arXiv      = ($this->arXiv);
+                    $doi        = ($this->doi);
+                    $title      = $this->html2tex($title);
+
+                    // cite
+                    $cite_name  = html_entity_decode($this->authors[0][1], ENT_COMPAT,  'UTF-8');
+                    $cite_name  = preg_replace('/\s+/', '', $cite_name);    // rm white spaces
+                    $cite_name  = $this->UTF2ASCII($cite_name);            // drop diacritics
+                    $cite_name  = strtolower($cite_name);
+                    $cite       = "@article{" . $cite_name .
+                                  ":" . substr($year, 2, 2). ",<br>\n";
+                    $outstr     = $cite . "&nbsp;&nbsp;author&nbsp;&nbsp; = &nbsp; {";
+
+                    // authors
+                    for ($i=0; $i < $this->nr_of_authors - 1; $i++) {
+                        $first_name = $this->authors[$i][0];
+                        $first_name = $this->UTF2TeX($first_name);
+
+                        $last_name  = $this->authors[$i][1];
+                        if (strpos($last_name, ' ')) {
+                            $last_name = "{".$last_name."}";
+                        }
+                        $last_name  = $this->UTF2TeX($last_name);
+
+                        $outstr    .=  "$first_name $last_name and  ";
+                    };
+
+                    // last author
+                    $first_name = $this->authors[$this->nr_of_authors - 1][0];
+                    $first_name = $this->UTF2TeX($first_name);
+
+                    $last_name  = $this->authors[$this->nr_of_authors - 1][1];
+                    $last_name  = $this->UTF2TeX($last_name);
+                    if (strpos($last_name, ' ')) {
+                        $last_name = "{".$last_name."}";
+                    }
+
+                    $outstr    .= "$first_name $last_name},<br>\n";
+
+                    //title
+                    $outstr    .= "&nbsp;&nbsp;title&nbsp;&nbsp; = &nbsp; {".$title."}, <br>\n";
+
+                    // journal
+                    $outstr    .= "&nbsp;&nbsp;journal&nbsp;&nbsp; = &nbsp; {".$journal."}, <br>\n";
+
+                    //ISSN
+                    $outstr    .= "&nbsp;&nbsp;issn&nbsp;&nbsp; = &nbsp; {".$issn."}, <br>\n";
+
+                    // page(s)
+                    $outstr    .= "&nbsp;&nbsp;pages&nbsp;&nbsp; = &nbsp; {" . $begin_page;
+                    if (empty($end_page)) {
+                        $outstr.=  "}, <br>\n";
+                    }
+                    else {
+                        $outstr.=  "--$end_page}, <br>\n";
+                    }
+
+                    // volume
+                    $outstr    .= "&nbsp;&nbsp;volume&nbsp;&nbsp; = &nbsp; {".$volume."}, <br>\n";
+
+                    // year
+                    $outstr    .= "&nbsp;&nbsp;year&nbsp;&nbsp; = &nbsp; {".$year."}, <br>\n";
+
+                    // project
+                    $outstr    .= "&nbsp;&nbsp;project&nbsp;&nbsp; = &nbsp; {".$project."}, <br>\n";
+
+                    // URL
+                    $outstr    .= "&nbsp;&nbsp;url&nbsp;&nbsp; = &nbsp; {".$url."}, <br>\n";
+
+                    // arXiv
+                    $outstr    .= "&nbsp;&nbsp;arXiv&nbsp;&nbsp; = &nbsp; {".$arXiv."}, <br>\n";
+
+                    // doi
+                    $outstr    .= "&nbsp;&nbsp;doi&nbsp;&nbsp; = &nbsp; {".$doi."} <br>\n";
+
+                    // close
+                    echo  $outstr."}<br>\n";
+                    return;
+
+            };   //  End switch
+
+        }       //  End method List_art_properties
+
+        private function UTF2TeX($code) {
+        /*
+         *  The most common characters that appear in western names
+         *  are translated to 7-bit LaTeX.
+         */
+
+            global $filenames;
+            if (file_exists($filenames['UTF2TeX1']) ) {
+                require_once $filenames['UTF2TeX1'];
+            }
+            else {
+                require_once $filenames['UTF2TeX2'];
+            }
+
+            return UTF2TeX($code);
+        }
+        private function UTF2ASCII($code) {
+        /*
+         *  The characters with diacritics that appear in western names
+         *  are translated to ASCII (diacritics are dropped).
+         */
+
+            global  $filenames;
+            if (file_exists($filenames['UTF2ASCII1']) ) {
+                require_once $filenames['UTF2ASCII1'];
+            }
+            else {
+                require_once $filenames['UTF2ASCII2'];
+            }
+            return UTF2ASCII($code);
+
+        }
+
+        private function html2tex($code) {
+        /*
+         *  A small subset of the HTML syntax is translated into LaTeX.
+         *
+         *  The purpose  of this function is to unload the main
+         *  burden of a HTML to LaTeX translation.
+         *  Numeric codes of HTML characters cannot be handled and
+         *  compound characters as, e.g, <i>X&#x303;</i> (tilde on italic X)
+         *  require human inspection.  Therefore, users of this function
+         *  are advised to check the LaTeX generated by this function and,
+         *  if necessary, correct the output by hand.
+         */
+            $UTFmath  = array(
+                '≥'    =>   '{\ge}',           //  U+2265
+                '≤'    =>   '{\le}',           //  U+2264
+                '→'    =>   '{\rightarrow}',   //  U+2192
+                '←'    =>   '{\leftarrow}',    //  U+2190
+                '∞'    =>   '{\infty}',        //  U+221E
+                '≈'    =>   '{\approx}',       //  U+2248
+                'Α'    =>   '{\rm A}',         //  U+0391
+                'α'    =>   '{\alpha}',        //  U+03B1
+                'Β'    =>   '{\rm B}',         //  U+0392
+                'β'    =>   '{\beta}',         //  U+03B2
+                'Γ'    =>   '{\Gamma}',        //  U+0393
+                'γ'    =>   '{\gamma}',        //  U+03B3
+                'Δ'    =>   '{\Delta}',        //  U+0394
+                'δ'    =>   '{\delta}',        //  U+0384
+                'Ε'    =>   '{\rm E}' ,        //  U+0395
+                'ε'    =>   '{\epsilon}',      //  U+03B5
+                'Θ'    =>   '{\Theta}',        //  U+0398
+                'θ'    =>   '{\theta}',        //  U+03B8
+                'Λ'    =>   '{\Lambda}',       //  U+039B
+                'λ'    =>   '{\lambda}',       //  U+03BB
+                'Μ'    =>   '{\rm M}',         //  U+039C
+                'μ'    =>   '{\mu}',           //  U+03BC
+                'Ν'    =>   '{\rm N}',         //  U+039D
+                'ν'    =>   '{\nu}',           //  U+03BD
+                'Π'    =>   '{\Pi}',           //  U+03A0
+                'π'    =>   '{\pi}',           //  U+03C0
+                'Ψ'    =>   '{\Psi}',          //  U+03A8
+                'ψ'    =>   '{\psi}',          //  U+03C8
+                'Σ'    =>   '{\Sigma}',        //  U+03A3
+                'σ'    =>   '{\sigma}',        //  U+03C3
+                'Ω'    =>   '{\Omega}',        //  U+03A9
+                'ω'    =>   '{\omega}'         //  U+03C9
+            );
+            foreach ($UTFmath as $key => $val ) {
+                $rgexp = '/'.$key.'/';
+                $code  = preg_replace($rgexp, "\$".$val."\$", $code);
+            }
+
+
+            global $filenames;
+            if (file_exists($filenames['UTF2TeX1']) ) {
+                require_once $filenames['UTF2TeX1'];
+            }
+            else {
+                require_once $filenames['UTF2TeX2'];
+            }
+            $code = UTF2TeX($code);
+
+
+            // A few HTML tags are white-listed in "clean_html.php".
+            // Convert to TeX:
+            $tags = array(
+                array("<sup"   , "/sup>"    ),
+                array("<sub"   , "/sub>"    ),
+                array("<em"    , "/em>"     ),
+                array("<i"     , "/i>"      ),
+                array("<b"     , "/b>"      ),
+                array("<strong", "/strong>" ),
+                array("<small" , "/small>"  )
+            );
+            $nr_of_tags = count($tags);
+            global $i;
+            for ($i=0; $i < $nr_of_tags; $i++) {   // >
+                $open  = $tags[$i][0];
+                $close = $tags[$i][1];
+                $rgexp = "/$open.*?>(.*?)<\\$close/";  // Escape slash in $close and escape backslash
+                $code  = preg_replace_callback(
+                            $rgexp,
+                            function($arg) {
+                                global $i;
+                                if ($i === 0) {
+                                    return "\$^{". $arg[1]. "}\$";
+                                }
+                                else if ($i === 1) {
+                                    return "\$_{". $arg[1]. "}\$";
+                                }
+                                else if ($i === 2) {
+                                    return "\\emph{". $arg[1]. "}";
+                                }
+                                else if ($i === 3) {
+                                    return "\\textit{". $arg[1]. "}";
+                                }
+                                else if ($i === 4) {
+                                    return "\\textbf{". $arg[1]. "}";
+                                }
+                                else if ($i === 5) {
+                                    return "\\textbf{". $arg[1]. "}";
+                                }
+                                else {
+                                    return $arg[1];
+                                }
+                            },
+                            $code
+                         );
+            }
+            unset($GLOBALS['i']);
+            $code = preg_replace('/\$\$/', '', $code);
+            return $code;
+
+        } // End html2tex
+
+        private function Sanitize_input(&$authors, &$vars) {
+        /*
+         *  Truncate and encode input (as protection against hackers)
+         */
+
+            global $pubDB;
+
+            // Check maximum lengths of all input parameters, except author names.
+            // Maximum values are set into array $maxlength by script maxlength.php.
+            // Depending on the level in the directory structure from which
+            // the invocation of this script occurs, either
+            // the name $maxfile1 or $maxfile2 is assigned to maxlength.php.
+            global $filenames;
+            $maxlength = array();
+            $maxfile1 = $filenames['maxlength1'];
+            $maxfile2 = $filenames['maxlength2'];
+            if (file_exists($maxfile1)) {
+                require $maxfile1;
+            }
+            elseif (file_exists($maxfile2)) {
+                require $maxfile2;
+            }
+            else {
+                echo "File maxlength.php containg maxlengths not found. Execution stops in Add_article.php <br>\n";
+                exit();
+            }
+
+            // Array $maxlength available now, loop over its entries (keys
+            // are names of input fields). Truncate without warning if necessary.
+            foreach ($maxlength as $key => $len) {
+
+                // Truncate
+                if ( key_exists($key, $vars) ) {
+                    if (mb_strlen($vars[$key]) > $len ) {
+                        $vars[$key] = substr($vars[$key], 0, $len );
+                    }
+                }
+                else {
+                    $vars[$key] = "";
+                }
+
+                $vars[$key] = preg_replace("/\s+/", " ", $vars[$key] );
+                $vars[$key] = trim($vars[$key]);
+
+                // Encode
+                $vars[$key] = htmlentities($vars[$key], ENT_COMPAT,  'UTF-8');
+            }
+
+
+            if (count($authors) > $max_authors) {
+                echo "<br>\n<b>Warning:</b> Number of authors is " .  count($authors) .
+                        ". Author list will be truncated at " . $max_authors . " names<br>\n";
+                $authors = array_slice($authors, 0, $max_authors);
+            }
+
+            $imax = count($authors);
+
+            for ($i = 0; $i < $imax; $i++) {  //>
+                $first_name = $authors[$i][0];
+                $last_name  = $authors[$i][1];
+
+                if ( empty($last_name) ) {
+                    die( "<br><b>Error: </b>Last name of author is missing.
+                            His/her first name is $first_name. Journal is {$vars['journal']};
+                            year is {$vars['year']}. <br>\n ");
+                }
+
+                $first_name = preg_replace("/\s+/", " ", $first_name );
+                $last_name  = preg_replace("/\s+/", " ", $last_name );
+                $first_name = trim($first_name);
+                $last_name  = trim($last_name);
+
+                // Truncate before encoding (encoding can make string much longer)
+                $len        = mb_strlen($first_name);
+                if ( $len  >  $maxlength['first_name']) {
+                    $first_name = substr($first_name, 0, $maxlength['first_name'] );
+                }
+                $len        = mb_strlen($last_name);
+                if ( $len  >  $maxlength['last_name']) {
+                    $last_name = substr($last_name, 0, $maxlength['last_name'] );
+                }
+
+                // Encode
+                $first_name = htmlentities($first_name, ENT_COMPAT, 'UTF-8');
+                $last_name  = htmlentities($last_name,  ENT_COMPAT, 'UTF-8');
+
+                $authors[$i][0] = $first_name;
+                $authors[$i][1] = $last_name;
+            }
+        }       // End of Sanitize_input()
+
+        private function Get_author_id($author_last_name, $author_first_name) {
+        /*
+         *  Get author_id from $tab_authors, if $author not present, add it to table.
+         */
+            global $pubDB, $tab_authors;
+            global $tab_authors_id, $tab_authors_last_name,  $tab_authors_first_name;
+
+            $a_id = $this -> Find_auth ($author_last_name, $author_first_name);
+            if ($a_id > 0) {
+                return $a_id;
+            }
+            else {
+                echo    "<span style = 'margin-left: 75px;'>
+                            Will add author <b>$author_last_name, $author_first_name</b> to table $tab_authors <br>\n
+                        </span>";
+
+                // (Escape \x00, \n, \r, \, ', " and \x1a. Encoding was done in function Sanitize_input)
+
+                $author_last_name   = $pubDB->real_escape_string($author_last_name);
+                $author_first_name  = $pubDB->real_escape_string($author_first_name);
+
+                $sql   = "INSERT INTO $tab_authors
+                                ($tab_authors_last_name,  $tab_authors_first_name)
+                          VALUES
+                                ('$author_last_name', '$author_first_name')";
+                $results = $pubDB->query($sql) or
+                    die('<b>Insert error in $tab_authors:</b> ' . $pubDB->error);
+
+                return $pubDB->insert_id;
+            }
+        }       // End of Get_author_id
+
+        private function Get_journal_id($journal_name, $issn) {
+        /*
+         *  Get journal_id from $tab_journals, if $journal_name not present, add it to table together
+         *  with its ISSN.
+         */
+            global $pubDB, $tab_journals;
+            global $tab_journals_id, $tab_journals_name, $tab_journals_issn;
+
+            $j_id = $this -> Find_journal($journal_name);
+            if ($j_id > 0) {
+                return $j_id;
+            }
+            else {
+
+                echo   "<span style = 'margin-left: 75px;'>
+                            Will add journal <b>$journal_name</b> to table $tab_journals<br>\n
+                        </span>";
+
+                $journal_name  = $pubDB->real_escape_string($journal_name);
+                $issn          = $pubDB->real_escape_string($issn);
+
+                $sql           =   "INSERT INTO $tab_journals
+                                       ($tab_journals_name,
+                                        $tab_journals_issn)
+                                    VALUES
+                                       ('$journal_name',
+                                        '$issn')
+                                   ";
+                $results = $pubDB->query($sql) or
+                    die('<b>Insert error in $tab_journals:</b> ' . $pubDB->error);
+
+                return $pubDB->insert_id;
+            }
+        }       // End of Get_journal
+
+        private function Find_journal ($selected_journal) {
+        /*
+         *     Return journal_id of $selected_journal if it is in $tab_journals, else return -1.
+         */
+            global $pubDB, $tab_journals;
+            global $tab_journals_id, $tab_journals_name, $tab_journals_issn;
+
+            // Load id of selected journal from table "journals"
+            // (single quotes because of spaces in $selected_journal)
+
+            $selected_journal  = $pubDB->real_escape_string($selected_journal);
+
+            $sql               = "SELECT $tab_journals_id
+                                  FROM   $tab_journals
+                                  WHERE
+                                         $tab_journals.$tab_journals_name  = '$selected_journal'
+                                 ";
+
+            $results = $pubDB->query($sql) or
+                die("<b>Select error in $tab_journals:</b> " . $pubDB->error);
+
+            if ($results->num_rows == 1) {
+                $journal = $results->fetch_row();
+                // Decoding and cleaning journal_id is unnecessary:
+                return $journal[0];
+            }
+            else {
+                return -1;
+            }
+        }       // End of Find_journal()
+
+        private function Find_auth ($author_last_name, $author_first_name) {
+        /*
+         *     Return author_id of ($author_last_name, $author_first_name) if it is in $tab_authors, else return -1.
+         */
+            global $pubDB, $tab_authors;
+            global $tab_authors_id, $tab_authors_last_name, $tab_authors_first_name;
+
+            // Load author id from table $tab_authors
+            $author_last_name  = $pubDB->real_escape_string($author_last_name);
+            $author_first_name = $pubDB->real_escape_string($author_first_name);
+
+            $sql               = "SELECT  $tab_authors_id
+                                    FROM  $tab_authors
+                                    WHERE $tab_authors.$tab_authors_last_name  = '$author_last_name'
+                                    AND   $tab_authors.$tab_authors_first_name = '$author_first_name'
+                                 ";
+
+            $results = $pubDB->query($sql) or
+                die("<b>XXXX Select error in $tab_authors:</b> " . $pubDB->error);
+
+            if ($results->num_rows == 1) {
+                $author = $results->fetch_row();
+                // Decoding and cleaning author_id is unnecessary:
+                return $author[0];
+            }
+            else {
+                return -1;
+            }
+        }     // End of Find_auth()
+
+    }     // End class Article
+?>

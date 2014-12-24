@@ -1,0 +1,147 @@
+<style>
+.headline {
+    font-family: Verdana,Arial,sans-serif;
+    padding: 1px 0px 15px 55px;
+    width: auto;
+    border-radius: 4px;
+    background: linear-gradient(to bottom, rgb(215, 230, 255) 0%, rgb(235, 240, 255)  100%);
+}
+.headline h3 {
+    padding-left: 20px;
+    margin-top: 14px;
+    margin-bottom: 15px;
+}
+
+.tabs {
+    list-style-type: none;
+    display: inline;
+}
+.tab {
+    text-align: center;
+    background-color: white;
+    border-top-right-radius: 7px;
+    border-top-left-radius: 7px;
+    border-bottom-left-radius: 3px;
+    border-bottom-right-radius: 3px;
+    border: solid rgb(200, 210, 255) 2px;
+    margin-top: 3px;
+    margin-bottom: 1px;
+    height: 25px;
+    width: 80px;
+    float: left;
+    display: inline;
+    padding-left: 0px;
+    margin-left: 15px;
+}
+.tab a {
+    text-decoration: none;
+}
+.tab:hover {
+    border-bottom: solid white  2px;
+    background-color: gray;
+    height: 28px;
+}
+.dropdown {
+    background-color:  red;
+    background-color:  rgb(165, 226, 255);   /*  #A5E2FF; */
+    color: black;
+    font-size: 80%;
+    width: 180px;
+    border-radius: 3px;
+    text-align: left;
+    padding-left: 5px;
+    padding-right: 5px;
+    margin-left: 0px;
+    margin-top:  7px;
+    display: none;
+    list-style-type: disc;
+    list-style-position: inside;
+}
+#input:hover   > #dropdown1 {
+    display: block;
+}
+#query:hover   > #dropdown2 {
+    display: block;
+}
+#update:hover  > #dropdown3 {
+    display: block;
+}
+#replace:hover > #dropdown4 {
+    display: block;
+}
+#delete:hover  > #dropdown5 {
+    display: block;
+}
+</style>
+
+<div class = "headline">
+    <h3>PWRef &ndash; a system for storing and retrieving scientific references
+    </h3>
+    <ul class = "tabs">
+
+        <li  class = "tab" id = "home"   >
+            <a href  = "http://www.theochem.ru.nl/~pwormer/PWRef/index.php">Home</a>
+        </li>
+
+        <li  class = "tab" id = "logon"   >
+            <a href  = "http://www.theochem.ru.nl/~pwormer/PWRef/logon/logon.php">Logon</a>
+        </li>
+
+        <li  class = "tab" id = "input" >Input
+            <ul id = "dropdown1" class = "dropdown" >
+                <li>
+                    <a href = "http://www.theochem.ru.nl/~pwormer/PWRef/articles/input/PWRef_input.php">Articles</a>
+                </li>
+                <li>
+                    <a href = "http://www.theochem.ru.nl/~pwormer/PWRef/books/input/PWRef_bookinp.php">Books, theses, etc.  </a>
+                </li>
+            </ul>
+        </li>
+
+        <li  class = "tab" id = "query"  >Search
+            <ul id = "dropdown2" class = "dropdown" >
+                <li>
+                    <a href = "http://www.theochem.ru.nl/~pwormer/PWRef/articles/search/PWRef_search.php">Articles</a>
+                </li>
+                <li>
+                    <a href = "http://www.theochem.ru.nl/~pwormer/PWRef/books/search/PWRef_book_search.php">Books, theses, etc. </a>
+                </li>
+            </ul>
+        </li>
+
+        <li  class = "tab" id = "update" >Update
+            <ul id = "dropdown3" class = "dropdown">
+                <li>
+                    <a href = "http://www.theochem.ru.nl/~pwormer/PWRef/articles/update/PWRef_update_article.php">Articles</a>
+                </li>
+            </ul>
+        </li>
+
+        <li  class = "tab" id = "replace">Replace
+            <ul id = "dropdown4" class = "dropdown">
+                <li>
+                    <a href = "http://www.theochem.ru.nl/~pwormer/PWRef/articles/replace/PWRef_replace_article.php">Articles</a>
+                </li>
+                <li>
+                    <a href = "http://www.theochem.ru.nl/~pwormer/PWRef/books/replace/PWRef_book_replace.php">Books, theses, etc.  </a>
+                </li>
+            </ul>
+        </li>
+
+        <li  class = "tab" id = "delete" >Delete
+            <ul id = "dropdown5" class = "dropdown">
+                <li>
+                    <a href = "http://www.theochem.ru.nl/~pwormer/PWRef/articles/delete/PWRef_delete_articles.php">Articles</a>
+                </li>
+                <li>
+                    <a href = "http://www.theochem.ru.nl/~pwormer/PWRef/books/delete/PWRef_book_delete.php">Books, theses, etc.  </a>
+                </li>
+            </ul>
+        </li>
+
+        <li  class = "tab" id = "documentation">
+            <a href  = "http://www.theochem.ru.nl/~pwormer/PWRef/documentation/doc.php">About</a>
+        </li>
+
+    </ul>
+</div>

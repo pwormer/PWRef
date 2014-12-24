@@ -1,0 +1,408 @@
+html {
+        border: solid red 0px;
+}
+body {
+        font-size: 16px;
+        padding: 0px;
+        margin: 0px;
+        width: auto;
+}
+ul {
+        list-style-type: none;
+}
+
+.title {
+        padding-top: 30px;
+        padding-bottom: 10px;
+        padding-left: 200px;
+        line-height: 1.2;
+        width: auto;
+        font-size: 18px;
+        font-weight: bold;
+        background-image: linear-gradient(to bottom, rgb(235, 240, 255) 0%, rgb(240, 245, 255) 60%, white 100%);
+}
+fieldset {
+        border: solid lightblue 1px;
+        width: 785px;                 /* width body - margin-left - padding */
+        margin-top:     0px;
+        margin-left:   75px;
+        padding-left:  20px;
+        padding-right: 20px;
+}
+a {
+        text-decoration: none;
+}
+input {
+        font-family: courier;
+        font-size: 85%;
+}
+textarea {
+        font-size: 16px;
+        font-family: monospace;
+}
+form {
+        width: auto;
+}
+label {
+        font-size:  16px;
+        padding-left: 0px;
+        padding-right: 5px;
+        font-weight: bold;
+        font-style: normal;
+}
+.goBtn, .backBtn, .restartBtn {
+        color:  white;
+        border-radius: 3px;
+        font-size: 14px;
+        font-family: sans-serif;
+        width: 120px;
+        height: 40px;
+        margin-left: 250px;
+        margin-top: 3px;
+        margin-bottom: 3px;
+}
+.goBtn {
+        background-color: rgb( 46, 139, 87);
+}
+.backBtn {
+        background-color: rgb(255, 69, 0);
+}
+.restartBtn {
+        background-color: rgb(140, 180, 255);
+}
+
+.info {      /* info.jpg */
+        width: 25px;
+        height: 25px;
+        float: right;
+        margin-right: 75px;
+}
+#tooltip_prelim {              /* Tooltip for preliminary search in delete, update and replace */
+        position: absolute;
+        left: 400px;
+        top: 160px;
+        display: none;
+        padding-left: 10px;
+        width: 500px;
+        line-height: 1.2;
+        margin-left: 0px;
+}
+.subhelp {
+        color: black;
+        font-size: 9pt;
+        font-family: Helvetica, sans-serif;
+        font-style: normal;
+        font-weight: normal;
+        font-variant: normal;
+        line-height: 1.2;
+        border: solid black 1px;
+        border-radius: 6px 6px 6px 6px;
+        background-color: rgb(250, 240, 192);
+        padding-left: 10px;
+        padding-right: 10px;
+        width: 375px;
+        z-index: 1;
+}
+.subhelp ul {
+        padding-left: 10px;
+}
+.subhelp ul li {
+        padding-top: 5px;
+        padding-bottom: 5px;
+}
+#home_menu {
+        line-height: 2;
+        border: solid lightblue 1px;
+        width: 600px;
+        font-family: Helvetica, sans-serif;
+        font-size: 14px;
+        padding: 10px 15px 10px 5px;
+        background-image: linear-gradient(to top, #FFFFFF 0%, #EBF5FF 100%);
+}
+#input_getTextArea {
+        width: auto;
+        position: relative;
+        top: 0px;
+        left: 0px;
+}
+#input_textAreaInp {
+        margin-top: 10px;
+        margin-bottom: 20px;
+        width: 750px;
+        border:  solid lightblue 1px;
+        color:   black;
+        font-family: courier;
+        font-size: 85%;
+}
+.book_textAreaInp {
+        margin-top: 10px;
+        margin-bottom: 20px;
+        width: 750px;
+        border:  solid lightblue 1px;
+        color:   black;
+        font-family: courier;
+        font-size: 85%;
+}
+#input_inputAll {
+        position: relative;
+        top: 0px;
+        left: 0px;
+}
+#input_textAreaHint {
+        margin-top: 15px;
+}
+.input_hint {
+        color:  black;
+        font-style: normal;
+        font-weight: normal;
+}
+#input_suggestions {
+        position: absolute;  /* w.r.t. #getArticle (inline)*/
+        top: 50px;
+        right: 50px;
+        width: auto;
+}
+#input_help > #input_subhelp {
+        display:  none;
+        position: absolute;
+        top: 10px; right: 0px;
+}
+#input_help:hover > #input_subhelp {
+        display: block;
+}
+#input_help1 > #input_subhelp1 {
+        display: none;
+        position: absolute;
+        top: 200px; right: 0px;
+        z-index: 1;
+}
+#input_help1:hover > #input_subhelp1 {
+        display: block;
+}
+.input_doiBtn {
+        background-color: rgb(210, 210, 220);
+        border-radius: 6px;
+        font-size: 10px;
+        font-family: sans-serif;
+        vertical-align: top;
+        margin-top: -3px;
+}
+#input_getArticleBtn {
+        float: right;
+}
+#input_div1 {
+        display: none;
+}
+/*
+#input_clearAllBtn {
+        background-color: rgb(255, 69, 0);
+        margin-left: 0px;
+}
+*/
+/* Search  */
+#search_menu {
+        background-color: rgb(235, 245, 255);
+        width: auto;
+        float: left;
+        margin: 0px 5px 10px 5px;
+        border: solid rgb(150,150, 200) 1px;
+        border-radius: 2px;
+        line-height:  30px;
+}
+#search_menu > div {
+        line-height: 20px;
+        padding: 5px;
+}
+#search_menu > ul {
+        list-style-type: none;
+        padding-left:  15px;
+        padding-right: 0px;
+        margin-bottom: 0px;
+}
+#search_menu a:link {
+        color: darkblue;
+        text-decoration: none
+}
+#search_menu a:visited {
+        color: darkblue;
+        text-decoration: none
+}
+#search_menu a:hover {
+        background-color: rgb(150, 150, 150);
+}
+#search_info > #tooltip li {
+        background-color: rgb(250, 240, 192);
+}
+
+#search_content {
+        position: relative;
+        top: 100px;
+        left: 80px;
+        width: 85%;
+        padding-left: 10px;
+        margin-top: 0px;
+}
+#search_methods li {
+        display: inline;
+        padding-right: 30px;
+}
+#formA ul {
+        padding-left: 25px;
+}
+.center {
+        text-align: center;
+        width: 650px;
+}
+#tooltip {
+        position: absolute;
+        top:  160px;
+        left: 400px;
+        display: none;
+}
+#search_info:hover  > #tooltip {
+        display: block;
+}
+#tooltip > ul {
+        padding-left: 20px;
+}
+#MethodA, #MethodB, #MethodC {
+        display: block;
+}
+#tooltip1, #tooltip2, #tooltip3 {
+        position: absolute;
+        top:  0px;
+        right: 0px;
+        display: none;
+}
+#search_info1:hover > #tooltip1 {
+        display: block;
+}
+#search_info2:hover > #tooltip2 {
+        display: block;
+}
+#search_info3:hover > #tooltip3 {
+        display: block;
+}
+#tooltip1 > ul {
+        padding-left: 20px;
+}
+#tooltip2 > ul {
+        padding-left: 20px;
+}
+#tooltip3 > ul {
+        padding-left: 20px;
+}
+.topText {
+        border: solid rgb(150,150, 200) 1px;
+        border-radius: 2px;
+        background-color: rgb(235, 245, 255);
+        list-style-type: none;
+        font-size: 80%;
+        font-style: normal;
+        padding: 5px 30px 5px 30px;
+        margin-top: 0px;
+        width: 450px;
+        line-height: 25px;
+}
+.bottom {
+        position: relative;
+        top: 100px;
+        clear: left;
+}
+/* Radio buttons */
+.format {
+        border: solid red 0px;
+        width: 650px;
+        text-align: left;
+        margin-top: 80px;
+        margin-left: 0px;
+        margin-bottom: 10px;
+        padding-left: 0px;
+}
+.caption {
+        color: black;
+        font-weight: bold;
+        font-size: 18px;
+        text-align: left;
+}
+.radio_table {
+        margin-left: 0px;
+        margin-top: 10px;
+        margin-bottom: 50px;
+        font-size: 16px;
+        width: 600px;
+}
+/* Crude initial search */
+.form_label {
+        padding-right: 15px;
+        padding-left:  20px;
+        font-weight: bold;
+}
+#limitations {
+        line-height: 30px;
+        border: solid #EBF5FF 1px;
+        width: 900px;
+        margin-top: 120px;
+        margin-left: 50px;
+        text-align: left;
+        padding: 10px;
+        background-image: linear-gradient(to top, #FFFFFF 0%, #EBF5FF 100%);
+}
+.update_margins {
+        margin-top: 20px;
+        margin-left: 50px;
+        width: 900px;
+}
+.margin-large-top {
+        margin-top: 120px;
+        margin-left: 20px;
+}
+.button1 {
+        color: white;
+        background-color: rgb( 46, 139, 87);
+        border-radius: 6px;
+}
+#outDiv {
+        margin-left: 50px;
+}
+/* Articles: replace,  input */
+.menu {
+        margin-top: 30px;
+        margin-left: 75px;
+        width: 825px;
+}
+#note {
+        background-image: linear-gradient(to bottom, rgb(235, 240, 255) 0%, rgb(240, 245, 255) 60%, white 100%);
+        line-height: 20px;
+        margin-left: 0px;
+        width: auto;
+}
+/* Documentation */
+.main {
+        margin-top: 20px;
+        margin-left:60px;
+        width: 900px;
+}
+
+/* Book.class method Tabulate_book_properties (tooltip): */
+#outer {
+    width: 900px;
+    height: 1em;
+    border: 0px solid red;
+    position: relative;
+    margin-top: -2.5em;
+}
+#tooltip4 {
+    display: none;
+    position: absolute;
+    top: 0px;
+    left: 700px;
+    width: 200px;
+    padding: 10px;
+}
+img:hover + #tooltip4 {
+      display: block;
+}
+img {
+    25px;
+}

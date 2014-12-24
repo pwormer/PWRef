@@ -1,0 +1,38 @@
+<b>Logon</b> (with username and password) is required for searching and updating the database.
+<br><br>
+
+<b>Input</b> of PWRef is in HTML/UTF-8. Example of input:
+<pre style = "margin: 5px 20px 5px 30px;">The absorption by CO&lt;sub>&lt;small>2&lt;/small>&lt;/sub>.</pre>
+This is rendered in pretty format on the screen as:
+<div style = "text-align: center;">
+  The absorption by CO<sub><small>2</small></sub>.
+</div>
+The only allowed HTML tags are on input:
+<pre style = "margin: 5px 10px 0px 10px;">
+&lt;b>, &lt;em>, &lt;i>, &lt;sub>, &lt;sup>, &lt;small>, &lt;strong>
+</pre>
+Special characters may be entered (1) as numeric (hex or dec) HTML entity,
+(2) by cut and paste from a UTF-8 character map, or (3)
+as HTML mnemonic entity (if it exists). For instance, the Greek capital letter Pi
+may be entered as:
+<pre style = "margin-top: 4px; margin-bottom: 6px; margin-left: 10px;">
+&amp;#928;(dec), Π(character map), or &amp;Pi;(mnemonic).</pre>
+
+<b>Output</b> can be chosen to be in either of five forms:
+Pretty, as HTML, as input for Initialize_db.php, suitable for copy-paste to PWRef, or as BibTeX.
+<br><br>
+For security reasons, this
+program&mdash;as any web application&mdash;is <em>not</em> allowed to
+write on a disk of the user. This means that the output must be copy-pasted from the screen
+into a user file.
+<br><br>
+
+An <b>Internet Explorer-10/11 option</b> is: <em>Check for newer
+versions of stored pages</em>. Its default value is: <em>Automatically</em>.
+For PWRef the following value is preferable: <em>Every time
+I visit the webpage</em>. <br> To set the option, go to:
+    Gear Icon/Internet Options/Tab General/Browsing history/Button Settings.
+You arrive at the dialog "Website Data Setting". Click the uppermost radiobutton.
+(See <a href="http://www.nlm.nih.gov/docline/ie10_settings.html" target = "_blank">U.S.
+National Library of Medicine</a> for images of this IE option setting).
+<br>

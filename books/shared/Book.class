@@ -1,0 +1,1049 @@
+<?php       //>
+    class Book {
+        /*
+         *  Public Methods
+         *      __construct()
+         *      Store()
+         *      Retrieve($book_id)
+         *      List_properties($output_type, $book_type) {
+         *      Open()
+         *      Delete_book($book_id)
+         *  Private methods
+         *      Sanitize()
+         *      Get_author_id($author)
+         *      Find_auth ($author_last_name, $author_first_name)
+         *      html2tex($code)
+         *      UTF2ASCII($code)
+         *      UTF2TeX($code)
+         *
+         *  Properties
+         *      type   (book, inproceedings, etc.)
+         *      nr_of_authors
+         *      authors[$author_number][0] (is author's first name and/or initials)
+         *      authors[$author_number][1] (is author's last name)
+         *                     with: ($author_number = 0, 1, ..., nr_of_authors-1)
+         *      nr_of_editors
+         *      editors[$editor_number][0] (is editor's first name and/or initials)
+         *      editors[$editor_number][1] (is editor's last name)
+         *                  with: ($editor_number = 0, 1, ..., nr_of_editors-1)
+         *      title         book title
+         *      second_title  title (chapter or contribution title)
+         *      organization  organization, school, or address
+         *      publisher     publisher + city
+         *      page          begin page
+         *      year          up to 4 digits
+         *      book_key      reference key (default last_name_first_author:year)
+         *      isbn          ISBN (either 10 or 13)
+         *      url           URL of publication
+         *      project       Internal use of user
+         *      book_note     Free format note
+         */
+
+        public function __construct() {
+        /*
+         *  Set default properties (strings all empty; year = 1))
+         */
+            $this -> type          = "";        // book, incollection, etc
+            $this -> nr_of_authors = 0;
+            $this -> authors       = array();   // author[0][0], author[0][1] first and last name of first author
+            $this -> nr_of_editors = 0;
+            $this -> editors       = array();   // editor[0][0], editor[0][1] first and last name of first editor
+            $this -> title         = "";        // book title
+            $this -> second_title  = "";        // chapter or contribution title
+            $this -> organization  = "";        // organization, school, or address
+            $this -> publisher     = "";        // publisher + city
+            $this -> page          = "";        // begin page
+            $this -> year          = 1;         // up to 4 digits
+            $this -> book_key      = "";        // reference key (default last_name_first_author:year)
+            $this -> isbn          = "";        // ISBN (either 10 or 13)
+            $this -> url           = "";        // URL of publication
+            $this -> project       = "";        // Internal use
+            $this -> book_note     = "";        // Free format
+        }
+
+        public function Store() {
+        /*
+         *  Sanitize and store object of class `Book`.
+         *
+         *  Note that mySQL converts string to integer if required. Thus
+         *  $year =  "1984" (string) is stored as 1984 (int).
+         */
+            if (file_exists("../Setup.php") ) {
+                require_once "../Setup.php";
+            }
+            else if (file_exists("../../Setup.php")) {
+                require_once "../../Setup.php";
+            }
+
+            Setup();      // Open database, set table and column names
+
+            global  $database, $pubDB;
+
+            global  $tab_books, $tab_authors, $tab_BA,$tab_BE;
+
+            global  $tab_authors_id, $tab_authors_last_name,  $tab_authors_first_name;
+
+            global  $tab_books_id,           $tab_books_organization, $tab_books_publisher,
+                    $tab_books_title,        $tab_books_second_title, $tab_books_page,
+                    $tab_books_type,         $tab_books_year,         $tab_books_url,
+                    $tab_books_project,      $tab_books_isbn,         $tab_books_key,
+                    $tab_books_note;
+
+            global  $tab_BA_book_id, $tab_BA_author_id, $tab_BE_book_id, $tab_BE_editor_id;
+
+            $this -> Sanitize();
+
+            //  Escape possible \x00, \n, \r, \, ', " and \x1a:
+            $type         = $pubDB -> real_escape_string($this -> type        );
+            $title        = $pubDB -> real_escape_string($this -> title       );
+            $second_title = $pubDB -> real_escape_string($this -> second_title);
+            $organization = $pubDB -> real_escape_string($this -> organization);
+            $publisher    = $pubDB -> real_escape_string($this -> publisher   );
+            $page         = $pubDB -> real_escape_string($this -> page        );
+            $year         = $pubDB -> real_escape_string($this -> year        );
+            $book_key     = $pubDB -> real_escape_string($this -> book_key    );
+            $isbn         = $pubDB -> real_escape_string($this -> isbn        );
+            $url          = $pubDB -> real_escape_string($this -> url         );
+            $project      = $pubDB -> real_escape_string($this -> project     );
+            $book_note    = $pubDB -> real_escape_string($this -> book_note   );
+
+            $sql          = "INSERT INTO $tab_books
+                                ($tab_books_type,          $tab_books_title,       $tab_books_second_title,
+                                 $tab_books_organization,  $tab_books_publisher,   $tab_books_page,
+                                 $tab_books_year,          $tab_books_key,         $tab_books_isbn,
+                                 $tab_books_url,           $tab_books_project,     $tab_books_note
+                                )
+                             VALUES
+                                ('$type',                  '$title',               '$second_title',
+                                 '$organization',          '$publisher',           '$page',
+                                  $year,                   '$book_key',            '$isbn',
+                                 '$url',                   '$project',             '$book_note'
+                                )
+                            ";
+
+            $results      = $pubDB->query($sql) or
+                die("<br><b>Insert error in $tab_books:</b> " . $pubDB->error);
+
+            $new_book_id  = $pubDB -> insert_id;
+
+            // For each author store a link to the newly entered book:
+            foreach ($this -> authors as $author) {
+                $author_id = $this -> Get_author_id($author);
+
+                $sql       = "INSERT INTO $tab_BA
+                                    ($tab_BA_book_id,     $tab_BA_author_id)
+                              VALUES
+                                    ('$new_book_id',      '$author_id')";
+
+                $results   = $pubDB -> query($sql) or
+                    die("<b>Insert error in table $tab_BA:</b> " . $pubDB->error);
+            }
+
+            // For each editor store a link to the newly entered book:
+            foreach ($this -> editors as $editor) {
+                $editor_id = $this -> Get_author_id($editor);
+
+                $sql       = "INSERT INTO $tab_BE
+                                    ($tab_BE_book_id,     $tab_BE_editor_id)
+                              VALUES
+                                    ('$new_book_id',      '$editor_id')";
+
+                $results   = $pubDB -> query($sql) or
+                    die("<b>Insert error in table $tab_BE:</b> " . $pubDB->error);
+            }
+
+        }   // End function Store
+
+        public function Open() {
+            require_once "../../Setup.php";
+            Setup();      // Open database, set table and column names
+        }
+        public function Retrieve($book_id) {
+
+       /*
+        *   Set properties of object with values of record `$book_id` retrieved from database.
+        *
+        *   Clean retrieved properties (in case database is compromised).
+        *
+        *   If $year === 1 or $year === "1" set $year to empty string.
+        */
+            //require_once "../../Setup.php";
+            //Setup(1);      // Open database, set table and column names
+
+            global  $database, $pubDB;
+
+            global  $tab_books, $tab_authors, $tab_BA,$tab_BE;
+
+            global  $tab_authors_id, $tab_authors_last_name,  $tab_authors_first_name;
+
+            global  $tab_books_id,           $tab_books_organization, $tab_books_publisher,
+                    $tab_books_title,        $tab_books_second_title, $tab_books_page,
+                    $tab_books_type,         $tab_books_year,         $tab_books_url,
+                    $tab_books_project,      $tab_books_isbn,         $tab_books_key,
+                    $tab_books_note;
+
+            global  $tab_BA_book_id, $tab_BA_author_id, $tab_BE_book_id, $tab_BE_editor_id;
+
+            global  $filenames;
+
+            $clean1 = $filenames['clean1'];
+            $clean2 = $filenames['clean2'];
+            if ( file_exists($clean1) ) {
+                require_once $clean1;
+            }
+            elseif ( file_exists($clean2) ) {
+                require_once $clean2;
+            }
+            else {
+                echo "Function clean_html not found. Execution stops.";
+                exit();
+            }
+
+
+            // Load all columns of table $tab_books  with row pertaining to $book_id.
+            $sql         = "SELECT * FROM $tab_books
+                            WHERE  $tab_books_id = $book_id";
+
+            $results     = $pubDB->query($sql) or die('<b>Select Error:</b> ' . $pubDB->error);
+
+            if ($results->num_rows === 0) {
+                echo "<div style='margin-top: 100px; margin-left: 75px;'>";
+                die("<b>Error:</b> Book {$book_id} not in table \"{$tab_books}\" of database
+                    \"$database.\"");
+                echo "</div>";
+            }
+
+
+            $book = $results->fetch_array(MYSQLI_ASSOC);
+
+            // Clean info from database, in case database is compromised
+            $this -> organization = clean_html($book[$tab_books_organization ]);
+            $this -> publisher    = clean_html($book[$tab_books_publisher    ]);
+            $this -> title        = clean_html($book[$tab_books_title        ]);
+            $this -> second_title = clean_html($book[$tab_books_second_title ]);
+            $this -> page         = clean_html($book[$tab_books_page         ]);
+            $this -> type         = clean_html($book[$tab_books_type         ]);
+            $this -> year         = clean_html($book[$tab_books_year         ]);
+            $this -> url          = clean_html($book[$tab_books_url          ]);
+            $this -> project      = clean_html($book[$tab_books_project      ]);
+            $this -> isbn         = clean_html($book[$tab_books_isbn         ]);
+            $this -> book_key     = clean_html($book[$tab_books_key          ]);
+            $this -> book_note    = clean_html($book[$tab_books_note         ]);
+
+            //if ($this -> year === "1" or $this -> year === 1) $this -> year = "";
+
+            // Set this -> authors and this -> nr_of_authors
+            $sql                 = "SELECT   a.$tab_authors_first_name, a.$tab_authors_last_name
+                                    FROM       $tab_authors  AS a
+                                    INNER JOIN $tab_BA       AS l
+                                    INNER JOIN $tab_books    AS b
+                                    ON       b.$tab_books_id        = l.$tab_BA_book_id
+                                    AND      l.$tab_BA_author_id    = a.$tab_authors_id
+                                    WHERE    b.$tab_books_id        = $book_id";
+
+            $results             = $pubDB->query($sql) or
+                                      die('<b>Select Error:</b> ' . $pubDB->error);
+
+            $i = 0;
+            while ( $author = $results->fetch_array(MYSQLI_NUM) ) {
+                $this->authors[$i][0] = clean_html($author[0]);
+                $this->authors[$i][1] = clean_html($author[1]);
+                $i++;
+            }
+            $this->nr_of_authors = $i;
+
+            // Set this -> editors and this -> nr_of_editors (names of editors are stored in $tab_authors)
+            $sql                 = "SELECT   a.$tab_authors_first_name, a.$tab_authors_last_name
+                                    FROM       $tab_authors  AS a
+                                    INNER JOIN $tab_BE       AS l
+                                    INNER JOIN $tab_books    AS b
+                                    ON       b.$tab_books_id        = l.$tab_BE_book_id
+                                    AND      l.$tab_BE_editor_id    = a.$tab_authors_id
+                                    WHERE    b.$tab_books_id        = $book_id";
+
+            $results             = $pubDB->query($sql) or
+                                      die('<b>Select Error:</b> ' . $pubDB->error);
+
+
+            $i = 0;
+            while ( $editor = $results->fetch_array(MYSQLI_NUM) ) {
+                $this->editors[$i][0] = clean_html($editor[0]);
+                $this->editors[$i][1] = clean_html($editor[1]);
+                $i++;
+            }
+            $this->nr_of_editors = $i;
+
+        }
+
+        public function List_properties($output_type) {
+       /*
+        *   List most of the non-null properties of an object of class Book.
+        *
+        *   Not listed:  nr_of_authors, nr_of_editors.
+        *
+        *   List properties in a format determined by argument $output_type",
+        *   which is any of:
+        *
+        *           "add"        ==> output can function as input to add_book().
+        *           "input"      ==> output can be used as input for PWRef.
+        *           "pretty"     ==> output is in a common reference style (pretty).
+        *           "html"       ==> output is in html (as pretty but html tags explicit).
+        *           "bibTeX"     ==> output is in bibTeX format.
+        */
+
+
+            // Preliminary whitelist-check  of $this -> type:
+            $book_type     = $this -> type;
+            $allowed_types = array('book', 'incollection', 'misc', 'booklet', 'phdthesis',
+                                   'inproceedings','inbook', 'unpublished', 'manual', 'mastersthesis');
+            if (!in_array($book_type, $allowed_types, TRUE) ) {
+                die ("<span style = 'margin-left: 75px; margin-top: 40px;'>
+                        <b>Error.</b> Non-allowed publication type: \"{$book_type}\". Execution stops.
+                     </span>");
+            }
+
+
+            //  Properties that are to be listed  (authors and editors are listed separately):
+            $keys = array('type', 'title', 'organization', 'publisher', 'second_title', 'page',  'year',
+                          'project', 'isbn',  'book_key', 'book_note', 'url');
+
+            // Set array $names  (array must be in 1-1 corespondence with array $keys):
+            switch($book_type) {
+                case "book":
+                    $names = array('type', 'title', 'organization', 'publisher', 'second_title', 'page', 'year',
+                                   'project', 'isbn',  'key', 'note', 'url');
+                    break;
+                case "incollection":
+                    $names = array('type', 'title', 'organization', 'publisher', 'booktitle', 'page',  'year',
+                                   'project', 'isbn',  'key', 'note', 'url');
+                    break;
+                case "misc":
+                    $names = array('type', 'title', 'address', 'publisher', 'booktitle', 'page',  'year',
+                                   'project', 'isbn',  'key', 'note', 'url');
+                    break;
+                case "booklet":
+                    $names = array('type', 'title', 'address', 'publisher',  'booktitle', 'page',  'year',
+                                   'project', 'isbn',  'key', 'note', 'url');
+                    break;
+                case "phdthesis":
+                    $names = array('type', 'title', 'school',  'publisher', 'booktitle', 'page',  'year',
+                                   'project', 'isbn',  'key', 'note', 'url');
+                    break;
+                case "inproceedings":
+                    $names = array('type', 'title', 'organization', 'publisher', 'booktitle', 'page',  'year',
+                                   'project', 'isbn',  'key', 'note', 'url');
+                    break;
+                case "inbook":
+                    $names = array('type', 'title', 'organization', 'publisher', 'booktitle', 'page',  'year',
+                                   'project', 'isbn',  'key', 'note', 'url');
+                    break;
+                case "unpublished":
+                    $names = array('type', 'title', 'organization', 'publisher', 'second_title', 'page',  'year',
+                                   'project', 'isbn',  'key', 'note', 'url');
+                    break;
+                case "manual":
+                    $names = array('type', 'title', 'organization', 'publisher', 'second_title', 'page',  'year',
+                                   'project', 'isbn',  'key', 'note', 'url');
+                    break;
+                case "mastersthesis":
+                    $names = array('type', 'title', 'school',  'publisher', 'booktitle', 'page',  'year',
+                                   'project', 'isbn',  'key', 'note', 'url');
+                    break;
+
+                default:            // Superfluous entry. Is here for future changes.
+                    die ("<span style = 'margin-left: 75px; margin-top: 40px;'>
+                            <b>Error.</b> Non-allowed publication type: \"{$book_type}\". Execution stops.
+                          </span>");
+
+            }   // End  switch($book_type)
+
+
+            switch ($output_type) {
+                case "add":         //  Output can function as input to add_book().
+                    if  ( $this->nr_of_authors > 0 ) {
+                        echo "\$authors    =  array( <br>";
+                        for ($i = 0; $i < $this->nr_of_authors-1; $i++) {
+                            $first_name = htmlentities($this->authors[$i][0], ENT_COMPAT,  'UTF-8');
+                            $last_name  = htmlentities($this->authors[$i][1], ENT_COMPAT,  'UTF-8');
+                            echo "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;array(\"{$first_name}\", \"{$last_name}\"),<br> \n ";
+                        }
+                        $first_name =  htmlentities($this->authors[$i][0], ENT_COMPAT,  'UTF-8');
+                        $last_name  =  htmlentities($this->authors[$i][1], ENT_COMPAT,  'UTF-8');
+                        echo "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;array(\"{$first_name}\", \"{$last_name}\")<br>  ); \n<br> ";
+                    }
+                    else {
+                        echo "\$authors = array(); <br>\n";
+
+                    }
+
+                    if  ( $this->nr_of_editors > 0 ) {      // List only if there are editors
+                        echo "\$editors    =  array( <br>";
+                        for ($i = 0; $i < $this->nr_of_editors-1; $i++) {
+                            $first_name = htmlentities($this->editors[$i][0], ENT_COMPAT,  'UTF-8');
+                            $last_name  = htmlentities($this->editors[$i][1], ENT_COMPAT,  'UTF-8');
+                            echo "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;array(\"{$first_name}\", \"{$last_name}\"),<br> \n ";
+                        }
+                        $first_name =  htmlentities($this->editors[$i][0], ENT_COMPAT,  'UTF-8');
+                        $last_name  =  htmlentities($this->editors[$i][1], ENT_COMPAT,  'UTF-8');
+                        echo "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;array(\"{$first_name}\", \"{$last_name}\")<br>  ); \n<br> ";
+                    }
+
+                    $i = 0;
+                    foreach ($keys as $k) {
+                        $val = $this -> $k;
+                        if (!empty($val) ) {
+                            $name = $names[$i];
+                            echo "\${$name}  = \"" . htmlentities($val, ENT_COMPAT, 'UTF-8') . "\";</br>\n";
+                        }
+                        $i++;
+                    }
+                    return;
+
+                case "input";
+                    if  ( $this->nr_of_authors > 0 ) {
+                        echo "<b>Authors:</b> <br>\n";
+                        for ($i = 0; $i < $this->nr_of_authors; $i++) {
+                            $first_name = htmlentities($this->authors[$i][0], ENT_COMPAT,  'UTF-8');
+                            $last_name  = htmlentities($this->authors[$i][1], ENT_COMPAT,  'UTF-8');
+                            echo $first_name . " " . $last_name . "<br>\n";
+                        }
+                    }
+
+
+                    if  ( $this->nr_of_editors > 0 ) {
+                        echo "<b>Editors:</b> <br>\n";
+                        for ($i = 0; $i < $this->nr_of_editors; $i++) {
+                            $first_name = htmlentities($this->editors[$i][0], ENT_COMPAT,  'UTF-8');
+                            $last_name  = htmlentities($this->editors[$i][1], ENT_COMPAT,  'UTF-8');
+                            echo $first_name . " " . $last_name . "<br>\n";
+                        }
+                    }
+
+                    $i = 0;
+                    foreach ($keys as $k) {
+                       $val = $this -> $k;
+                       if (!empty($val) ) {
+                           $name = $names[$i];
+                           echo "<b>{$name}:</b> &nbsp;&nbsp; " . htmlentities($val, ENT_COMPAT, 'UTF-8') . "</br>\n";
+                       }
+                       $i++;
+                    }
+                    return;
+
+                case "pretty":
+                    for ($i=0; $i < $this->nr_of_authors; $i++) {
+                        $first_name = $this->authors[$i][0];
+                        $last_name  = $this->authors[$i][1];
+                        if ($i <   $this->nr_of_authors-2) {
+                            echo "$first_name $last_name,  ";
+                        }
+                        else if ($i === $this->nr_of_authors-2) {
+                            echo "$first_name {$last_name} and  ";
+                        }
+                        else {
+                            echo "$first_name $last_name.  ";
+                        }
+                    };
+
+                    $title        = $this -> title;
+                    $sec_title    = $this -> second_title;
+                    $page         = $this -> page;
+                    $publisher    = $this -> publisher;
+                    $organization = $this -> organization;
+                    $year         = $this -> year;
+                    $isbn         = $this -> isbn;
+                    $url          = $this -> url;
+                    $project      = $this -> project;
+                    $note         = $this -> book_note;
+                    $note         = ucfirst($note);
+
+                    $outstr = "";
+                    if (!empty($title        ))   $outstr .= " <em>$title</em>. \n";
+                    if (!empty($sec_title    ))   $outstr .= "In: " . $sec_title   . ", ";
+                    if (!empty($page         ))   $outstr .= "p. " . $page        . ". ";
+                    if (!empty($publisher    ))   $outstr .= $publisher   . ", ";
+                    if (!empty($organization ))   {
+                        $thesis = "";
+                        $type = $this -> type;
+                        if      ($type === "phdthesis"    ) $thesis = "PhD thesis, ";
+                        else if ($type === "mastersthesis") $thesis = "Master's thesis, ";
+                        $outstr .= $thesis .  $organization. ", ";
+                    }
+                    if (!empty($year         ))   $outstr .= $year . ". ";
+                    if (!empty($isbn         ))   $outstr .= " ISBN: $isbn.";
+
+                    if (!empty($outstr) and !preg_match('/\.\s*$/', $outstr)) $outstr .= ". ";
+                    echo $outstr;
+
+                    // Editors
+                    for ($i=0; $i < $this->nr_of_editors; $i++) {
+                        $first_name = $this->editors[$i][0];
+                        $last_name  = $this->editors[$i][1];
+                        if ($i === $this->nr_of_editors-2) {
+                            echo "$first_name $last_name and  ";
+                        }
+                        else if ($i < $this->nr_of_editors-2) {
+                            echo "$first_name $last_name,  ";
+                        }
+                        else if ($i === $this->nr_of_editors-1) {
+                            echo "$first_name $last_name  ";
+                        }
+                    };
+
+                    if ($this->nr_of_editors === 1) {
+                        echo "&nbsp;(Editor).&nbsp;";
+                    }
+                    else if ($this->nr_of_editors > 1) {
+                        echo "&nbsp;(Editors).&nbsp;";
+                    }
+
+                    $outstr = "";
+                    if (!empty($note    ))   $outstr .= " $note";
+                    if (!empty($url     ))   $outstr .= " URL:  $url.";
+                    if (!empty($project ))   $outstr .= " (Project: $project).";
+
+                    if (!empty($outstr) and !preg_match('/\.\s*$/', $outstr)) $outstr .= ".";
+                    echo $outstr . "<br>\n";
+
+                    return;
+
+                case "html":
+                    for ($i=0; $i < $this->nr_of_authors; $i++) {
+                        $first_name = htmlentities($this->authors[$i][0] , ENT_COMPAT,  'UTF-8');
+                        $last_name  = htmlentities($this->authors[$i][1] , ENT_COMPAT,  'UTF-8');
+                        if ($i === $this->nr_of_authors-2) {
+                            echo "$first_name $last_name and  ";
+                        }
+                        else if ($i === $this->nr_of_authors - 1) {
+                            echo "$first_name $last_name.  ";
+                        }
+                        else {
+                            echo "$first_name $last_name,  ";
+                        }
+                    };
+
+
+                    $title        = htmlentities($this -> title       , ENT_COMPAT, 'UTF-8');
+                    $sec_title    = htmlentities($this -> second_title, ENT_COMPAT, 'UTF-8');
+                    $page         = htmlentities($this -> page        , ENT_COMPAT, 'UTF-8');
+                    $publisher    = htmlentities($this -> publisher   , ENT_COMPAT, 'UTF-8');
+                    $organization = htmlentities($this -> organization, ENT_COMPAT, 'UTF-8');
+                    $year         = htmlentities($this -> year        , ENT_COMPAT, 'UTF-8');
+                    $isbn         = htmlentities($this -> isbn        , ENT_COMPAT, 'UTF-8');
+                    $url          = htmlentities($this -> url         , ENT_COMPAT, 'UTF-8');
+                    $project      = htmlentities($this -> project     , ENT_COMPAT, 'UTF-8');
+                    $note         = htmlentities($this -> book_note   , ENT_COMPAT, 'UTF-8');
+
+                    $outstr = "";
+                    if (!empty($title       ))    $outstr = " &lt;em&gt;$title&lt;/em&gt;. \n";
+                    if (!empty($sec_title   ))    $outstr .= "In: " . $sec_title   . ", ";
+                    if (!empty($page        ))    $outstr .= "p. " . $page        . ", ";
+                    if (!empty($publisher   ))    $outstr .= $publisher   . ", ";
+                    if (!empty($organization ))   {
+                        $thesis = "";
+                        $type = $this -> type;
+                        if      ($type === "phdthesis"    ) $thesis = "PhD thesis, ";
+                        else if ($type === "mastersthesis") $thesis = "Master&amp;#x27;s thesis, ";
+                        $outstr .= $thesis .  $organization. ", ";
+                    }
+                    if (!empty($year        ))    $outstr .= $year . ".";
+                    if (!empty($isbn        ))    $outstr .= " ISBN: $isbn.";
+
+                    if (!empty($outstr) and !preg_match('/\.\s*$/', $outstr)) $outstr .= ".";
+                    echo $outstr . "\n";
+
+                    for ($i=0; $i < $this->nr_of_editors; $i++) {
+                        $first_name = htmlentities($this->editors[$i][0], ENT_COMPAT,  'UTF-8');
+                        $last_name  = htmlentities($this->editors[$i][1], ENT_COMPAT,  'UTF-8');
+                        if ($i === $this->nr_of_editors-2) {
+                            echo "$first_name $last_name and  ";
+                        }
+                        else if ($i < $this->nr_of_editors-2) {
+                            echo "$first_name $last_name,  ";
+                        }
+                        else if ($i === $this->nr_of_editors-1) {
+                            echo "$first_name $last_name  ";
+                        }
+                    };
+                    if ($this->nr_of_editors > 1 ) {
+                        echo "&nbsp;(Editors).&nbsp;";
+                    }
+                    else if ($this->nr_of_editors === 1 ) {
+                        echo "&nbsp;(Editor).&nbsp;";
+                    }
+
+                    $outstr = "";
+                    if (!empty($note    ))    $outstr .= " Note:  $note";
+                    if (!empty($url     ))    $outstr .= " $url.";
+                    if (!empty($project ))    $outstr .= " (Project: $project)";
+
+                    if (!empty($outstr) and !preg_match('/\.\s*$/', $outstr)) $outstr .= ".";
+                    echo $outstr . "\n";
+                    echo "<br>&lt;br&gt;&lt;br&gt;\n";
+                    return;
+
+                case "bibTeX":
+                    $year = $this -> year;
+                    if ( !empty($this -> book_key) ) {
+                        $cite       = "@". strtolower($book_type) . "{" . $this -> book_key. ",<br>\n";
+
+                    }
+                    else if ( !empty($this->authors[0][1]) ) {
+                        $cite_name  = html_entity_decode($this->authors[0][1], ENT_COMPAT,  'UTF-8');
+                        $cite_name  = preg_replace('/\s+/', '', $cite_name);    // rm white spaces
+                        $cite_name  = $this->UTF2ASCII($cite_name);            // drop diacritics
+                        $cite_name  = strtolower($cite_name);
+                        $cite       = "@". strtolower($book_type) . "{" . $cite_name .
+                                      ":" . substr($year, 2, 2). ",<br>\n";
+                    }
+                    else if ( !empty($this->editors[0][1]) ) {
+                        $cite_name  = html_entity_decode($this->editors[0][1], ENT_COMPAT,  'UTF-8');
+                        $cite_name  = preg_replace('/\s+/', '', $cite_name);    // rm white spaces
+                        $cite_name  = $this->UTF2ASCII($cite_name);            // drop diacritics
+                        $cite_name  = strtolower($cite_name);
+                        $cite       = "@". strtolower($book_type) . "{" . $cite_name .
+                                      ":" . substr($year, 2, 2). ",<br>\n";
+                    }
+                    else {
+                        $cite       = "@". strtolower($book_type) . "{" . "dummykey:" . $year . ",<br>\n";
+                    }
+
+                    $outstr = $cite;
+
+                    // authors
+                    if ( $this->nr_of_authors > 0 ) {
+                        $outstr     .=  "&nbsp;&nbsp;author&nbsp;&nbsp; = &nbsp; {";
+                        for ($i=0; $i < $this->nr_of_authors-1; $i++) {
+                            $first_name = html_entity_decode($this->authors[$i][0], ENT_COMPAT,  'UTF-8');
+                            $first_name = Book :: UTF2TeX($first_name);      // invoke method UTF2TeX
+
+                            $last_name  = html_entity_decode($this->authors[$i][1], ENT_COMPAT,  'UTF-8');
+                            if (strpos($last_name, ' ')) {
+                                $last_name = "{".$last_name."}";
+                            }
+                            $last_name  = Book :: UTF2TeX($last_name);
+
+                            $outstr    .=  "$first_name $last_name and  ";
+                        };
+
+                        $first_name = html_entity_decode($this->authors[$i][0], ENT_COMPAT,  'UTF-8');
+                        $first_name = Book :: UTF2TeX($first_name);
+
+                        $last_name  = html_entity_decode($this->authors[$i][1], ENT_COMPAT,  'UTF-8');
+                        $last_name  = Book :: UTF2TeX($last_name);
+
+                        if (strpos($last_name, ' ')) {
+                            $last_name = "{".$last_name."}";
+                        }
+
+                        $outstr    .= "$first_name $last_name},<br>\n";
+                    }
+
+                    // editors
+                    if ( $this->nr_of_editors > 0 ) {
+                        $outstr     .=  "&nbsp;&nbsp;editor&nbsp;&nbsp; = &nbsp; {";
+                        for ($i=0; $i < $this->nr_of_editors-1; $i++) {
+                            $first_name = html_entity_decode($this->editors[$i][0], ENT_COMPAT,  'UTF-8');
+                            $first_name = Book :: UTF2TeX($first_name);
+
+                            $last_name  = html_entity_decode($this->editors[$i][1], ENT_COMPAT,  'UTF-8');
+                            if (strpos($last_name, ' ')) {
+                                $last_name = "{".$last_name."}";
+                            }
+                            $last_name  = Book :: UTF2TeX($last_name);
+
+                            $outstr    .=  "$first_name $last_name and  ";
+                        };
+
+                        $first_name = html_entity_decode($this->editors[$i][0], ENT_COMPAT,  'UTF-8');
+                        $first_name = Book :: UTF2TeX($first_name);
+
+                        $last_name  = html_entity_decode($this->editors[$i][1], ENT_COMPAT,  'UTF-8');
+                        $last_name  = Book :: UTF2TeX($last_name);
+
+                        if (strpos($last_name, ' ')) {
+                            $last_name = "{".$last_name."}";
+                        }
+
+                        $outstr    .= "$first_name $last_name},<br>\n";
+                    }
+
+
+                    $title        = Book :: html2tex($this -> title);
+                    $sec_title    = Book :: html2tex($this -> second_title);
+                    $page         = $this -> page;
+                    $publisher    = Book :: html2tex($this -> publisher);
+                    $organization = Book :: html2tex($this -> organization);
+                    $page         = $this -> page;
+                    $year         = $this -> year;
+                    $isbn         = $this -> isbn;
+                    $url          = Book :: html2tex($this -> url);
+                    $project      = Book :: html2tex($this -> project);
+                    $note         = Book :: html2tex($this -> book_note);
+
+                    //title
+                    if (!empty($title)) {
+                        $outstr    .= "&nbsp;&nbsp;title&nbsp;&nbsp; = &nbsp; {".$title."}, <br>\n";
+                    }
+
+                    // second_title
+                    if (!empty($sec_title)) {
+                        $outstr    .= "&nbsp;&nbsp;booktitle&nbsp;&nbsp; = &nbsp; {".$sec_title."}, <br>\n";
+                    }
+
+                    // publisher
+                    if (!empty($publisher)) {
+                        $outstr    .= "&nbsp;&nbsp;publisher&nbsp;&nbsp; = &nbsp; {".$publisher."}, <br>\n";
+                    }
+
+                    // organization
+                    if (!empty($organization)) {
+                        $outstr    .= "&nbsp;&nbsp;{$names[2]}&nbsp;&nbsp; = &nbsp; {".$organization."}, <br>\n";
+                    }
+
+                    // page
+                    if (!empty($page)) {
+                        $outstr    .= "&nbsp;&nbsp;page&nbsp;&nbsp; = &nbsp; {".$page."}, <br>\n";
+                    }
+
+                    // year
+                    if (!empty($year)) {
+                        $outstr    .= "&nbsp;&nbsp;year&nbsp;&nbsp; = &nbsp; {".$year."}, <br>\n";
+                    }
+
+                    // isbn
+                    if (!empty($isbn)) {
+                        $outstr    .= "&nbsp;&nbsp;isbn&nbsp;&nbsp; = &nbsp; {".$isbn."} <br>\n";
+                    }
+
+                    // project
+                    if (!empty($project)) {
+                        $outstr    .= "&nbsp;&nbsp;project&nbsp;&nbsp; = &nbsp; {".$project."}, <br>\n";
+                    }
+
+                    //url
+                    if (!empty($url)) {
+                        $outstr    .= "&nbsp;&nbsp;url&nbsp;&nbsp; = &nbsp; {".$url."} <br>\n";
+                    }
+
+                    //note
+                    if (!empty($note)) {
+                        $outstr    .= "&nbsp;&nbsp;note&nbsp;&nbsp; = &nbsp; {".$note."} <br>\n";
+                    }
+
+                    // close
+                    echo  $outstr."}<br>\n";
+
+                    return;
+            }       // End  switch ($output_type)
+        }
+
+        public function Delete_book($book_id) {
+            global  $pubDB;
+
+            global  $tab_books,  $tab_BA, $tab_BE;
+            global  $tab_books_id;
+            global  $tab_BA_book_id, $tab_BE_book_id;
+
+            $book_id *= 1;
+            if ( !preg_match('/^\d+$/', $book_id) ) {
+                die("<b>Error:</b> trying to delete bool with non-numeric id " . $book_id);
+            }
+
+            $sql = "DELETE
+                    FROM        $tab_BE
+                    WHERE       $tab_BE_book_id = $book_id";
+            $pubDB->query($sql) or
+                die('<b>Delete error 1 in  method Delete_book of Book.class:</b> ' . $pubDB->error);
+
+            $sql = "DELETE
+                    FROM        $tab_BA
+                    WHERE       $tab_BA_book_id = $book_id";
+            $pubDB->query($sql) or
+                die('<b>Delete error 2 in  method Delete_book of Book.class:</b> ' . $pubDB->error);
+
+
+            $sql = "DELETE
+                    FROM        $tab_books
+                    WHERE       $tab_books_id = $book_id";
+            $pubDB->query($sql) or
+                die('<b>Delete error 3 in  method Delete_book of Book.class:</b> ' . $pubDB->error);
+
+
+        }
+
+        private function Sanitize() {
+        /*
+         *  Encode (by call to htmlentities) object of class `Book` before storing in database.
+         *  Remove empty authors and editors.
+         *
+         *  Note: Properties are assumed to be clean and of bound lengths.
+         */
+
+            //  Encode:  ">" => "&gt;",  "<" => "&lt;", "�" => "&eacute;", etc.
+            foreach ($this as $k => $val) {
+                if ($k === "authors" or $k === "editors") continue;
+                $this->$k = htmlentities($val, ENT_COMPAT,  'UTF-8');
+            }
+
+            //  Encode authors while discarding empty authors
+            $nr_of_authors = count($this -> authors);
+            $inew = 0;
+            for ($i = 0; $i < $nr_of_authors; $i++) {
+                $first = $this -> authors[$i][0];
+                $first = trim(preg_replace('/(\s+)/', ' ', $first));
+                $last  = $this -> authors[$i][1];
+                $last  = trim(preg_replace('/(\s+)/', ' ', $last));
+                if ( $first === "" and $last === "" ) {
+                    $inew--;
+                }
+                else {
+                    $this -> authors[$inew][0] = $first;
+                    $this -> authors[$inew][1] = $last;
+                }
+                $inew++;
+            }
+            array_splice($this -> authors, $inew);
+
+
+            //  Encode editors while discarding empty editors
+            $nr_of_editors = count($this -> editors);
+            $inew = 0;
+            for ($i = 0; $i < $nr_of_editors; $i++) {
+                $first = $this -> editors[$i][0];
+                $first = trim(preg_replace('/(\s+)/', ' ', $first));
+                $last  = $this -> editors[$i][1];
+                $last  = trim(preg_replace('/(\s+)/', ' ', $last));
+                if ( $first === "" and $last === "" ) {
+                    $inew--;
+                }
+                else {
+                    $this -> editors[$inew][0] = $first;
+                    $this -> editors[$inew][1] = $last;
+                }
+                $inew++;
+            }
+            array_splice($this -> editors, $inew);
+
+        }   //  End function Sanitize()
+
+        private function Get_author_id($author) {
+        /*
+         *  Get author_id from $tab_authors, if $author not present, add it to table.
+         */
+            global  $pubDB, $tab_authors;
+            global  $tab_authors_id, $tab_authors_last_name,  $tab_authors_first_name;
+
+            $author_first_name = $author[0];
+            $author_last_name  = $author[1];
+
+            $a_id = $this->Find_auth ($author_last_name, $author_first_name);
+
+            if ($a_id > 0) {
+                return $a_id;
+            }
+            else {
+                echo "<span style = 'margin-left: 75px;'>
+                      Will add author <b>$author_last_name, $author_first_name</b> to table $tab_authors<br>\n
+                     </span>";
+
+                //  Escape quotes etc.  (encoding was done in method Sanitize,
+                //  object properties are assumed to be clean).
+
+                $author_last_name   = $pubDB->real_escape_string($author_last_name);
+                $author_first_name  = $pubDB->real_escape_string($author_first_name);
+
+                $sql   = "INSERT INTO $tab_authors
+                                ($tab_authors_last_name,  $tab_authors_first_name)
+                          VALUES
+                                ('$author_last_name', '$author_first_name')";
+                $results = $pubDB->query($sql) or
+                    die('<b>Insert error in $tab_authors:</b> ' . $pubDB->error);
+
+                return $pubDB->insert_id;
+            }
+        }
+
+        private function Find_auth ($author_last_name, $author_first_name) {
+        /*
+         *  Return author_id of ($author_last_name, $author_first_name)
+         *  if it is in the database table "$tab_authors", else return -1.
+         */
+            global  $pubDB, $tab_authors;
+            global  $tab_authors_id, $tab_authors_last_name, $tab_authors_first_name;
+
+            // Load author id from table $tab_authors
+
+            $author_last_name  = $pubDB->real_escape_string($author_last_name);
+            $author_first_name = $pubDB->real_escape_string($author_first_name);
+
+            $sql = "SELECT $tab_authors_id
+                    FROM   $tab_authors
+                    WHERE  $tab_authors_last_name  = '$author_last_name'
+                    AND    $tab_authors_first_name = '$author_first_name'
+                   ";
+
+            $results = $pubDB->query($sql) or
+                die("<b>Select error in $tab_authors:</b>  " . $pubDB->error);
+
+            if ($results->num_rows == 1) {
+                $author    = $results->fetch_array(MYSQLI_ASSOC);
+                $author_id = $author[$tab_authors_id];
+                if (preg_match('/^\d+$/', $author_id) ) {
+                    return $author_id;
+                }
+                else {
+                    echo "<span style = 'margin: 75px'><b>Error:</b>
+                          database is compromised, non-numeric author_id</span>";
+                    exit();
+                }
+            }
+            else {
+                return -1;
+            }
+        }
+
+        private function html2tex($code) {
+        /*
+         *  A small subset of the HTML syntax is translated into LaTeX.
+         *
+         *  The purpose  of this function is to unload the main
+         *  burden of a HTML to LaTeX translation.
+         *  Numeric codes of HTML characters cannot be handled and
+         *  compound characters as, e.g, <i>X&#x303;</i> (tilde on italic X)
+         *  require human inspection.  Therefore, users of this function
+         *  are advised to check the LaTeX generated by this function and,
+         *  if necessary, correct the output by hand.
+         */
+            $UTFmath  = array(
+                '≥'    =>   '{\ge}',           //  U+2265
+                '≤'    =>   '{\le}',           //  U+2264
+                '→'    =>   '{\rightarrow}',   //  U+2192
+                '←'    =>   '{\leftarrow}',    //  U+2190
+                '∞'    =>   '{\infty}',        //  U+221E
+                '≈'    =>   '{\approx}',       //  U+2248
+                'Α'    =>   '{\rm A}',         //  U+0391
+                'α'    =>   '{\alpha}',        //  U+03B1
+                'Β'    =>   '{\rm B}',         //  U+0392
+                'β'    =>   '{\beta}',         //  U+03B2
+                'Γ'    =>   '{\Gamma}',        //  U+0393
+                'γ'    =>   '{\gamma}',        //  U+03B3
+                'Δ'    =>   '{\Delta}',        //  U+0394
+                'δ'    =>   '{\delta}',        //  U+0384
+                'Ε'    =>   '{\rm E}',         //  U+0395
+                'ε'    =>   '{\epsilon}',      //  U+03B5
+                'Θ'    =>   '{\Theta}',        //  U+0398
+                'θ'    =>   '{\theta}',        //  U+03B8
+                'Λ'    =>   '{\Lambda}',       //  U+039B
+                'λ'    =>   '{\lambda}',       //  U+03BB
+                'Μ'    =>   '{\rm M}',         //  U+039C
+                'μ'    =>   '{\mu}',           //  U+03BC
+                'Ν'    =>   '{\rm N}',         //  U+039D
+                'ν'    =>   '{\nu}',           //  U+03BD
+                'Π'    =>   '{\Pi}',           //  U+03A0
+                'π'    =>   '{\pi}',           //  U+03C0
+                'Ψ'    =>   '{\Psi}',          //  U+03A8
+                'ψ'    =>   '{\psi}',          //  U+03C8
+                'Σ'    =>   '{\Sigma}',        //  U+03A3
+                'σ'    =>   '{\sigma}',        //  U+03C3
+                'Ω'    =>   '{\Omega}',        //  U+03A9
+                'ω'    =>   '{\omega}'         //  U+03C9
+            );
+            foreach ($UTFmath as $key => $val ) {
+                $rgexp = '/'.$key.'/';
+                $code  = preg_replace($rgexp, "\$".$val."\$", $code);
+            }
+
+            global $filenames;
+            if (file_exists($filenames['UTF2TeX1']) ) {
+                require_once $filenames['UTF2TeX1'];
+            }
+            else {
+                require_once $filenames['UTF2TeX2'];
+            }
+            $code = UTF2TeX($code);
+
+            // A few HTML tags are white-listed in "clean_html.php".
+            // Convert to TeX:
+            $tags = array(
+                array("<sup"   , "/sup>"    ),
+                array("<sub"   , "/sub>"    ),
+                array("<em"    , "/em>"     ),
+                array("<i"     , "/i>"      ),
+                array("<b"     , "/b>"      ),
+                array("<strong", "/strong>" ),
+                array("<small" , "/small>"  )
+            );
+            $nr_of_tags = count($tags);
+            global $i;
+            for ($i=0; $i < $nr_of_tags; $i++) {   // >
+                $open  = $tags[$i][0];
+                $close = $tags[$i][1];
+                $rgexp = "/$open.*?>(.*?)<\\$close/";  // Escape slash in $close and escape backslash
+                $code  = preg_replace_callback(
+                            $rgexp,
+                            function($arg) {
+                                global $i;
+                                if ($i === 0) {
+                                    return "\$^{". $arg[1]. "}\$";
+                                }
+                                else if ($i === 1) {
+                                    return "\$_{". $arg[1]. "}\$";
+                                }
+                                else if ($i === 2) {
+                                    return "\\emph{". $arg[1]. "}";
+                                }
+                                else if ($i === 3) {
+                                    return "\\textit{". $arg[1]. "}";
+                                }
+                                else if ($i === 4) {
+                                    return "\\textbf{". $arg[1]. "}";
+                                }
+                                else if ($i === 5) {
+                                    return "\\textbf{". $arg[1]. "}";
+                                }
+                                else {
+                                    return $arg[1];
+                                }
+                            },
+                            $code
+                         );
+            }
+            unset($GLOBALS['i']);
+            $code = preg_replace('/\$\$/', '', $code);
+            return $code;
+
+        } // End html2tex
+        private function UTF2TeX($code) {
+      /*
+       *  The most common accented characters that appear in western names
+       *  are translated to 7-bit LaTeX.
+       */
+            global  $filenames;
+            require_once $filenames['UTF2TeX2'];
+
+            if (file_exists($filenames['UTF2TeX1']) ) {
+                require_once $filenames['UTF2TeX1'];
+            }
+            else {
+                require_once $filenames['UTF2TeX2'];
+            }
+            return UTF2TeX($code);
+        }
+        private function UTF2ASCII($code) {
+      /*
+       *  The most common accented characters that appear in western names
+       *  are translated to ASCII, i.e., diacritics are dropped.
+       */
+            global  $filenames;
+            if (file_exists($filenames['UTF2ASCII1']) ) {
+                require_once $filenames['UTF2ASCII1'];
+            }
+            else {
+                require_once $filenames['UTF2ASCII2'];
+            }
+            return UTF2ASCII($code);
+        }
+
+    } // End class Book
+?>
