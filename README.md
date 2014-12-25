@@ -1,10 +1,10 @@
 PWRef
 =====
 
-A web application for storing and retrieving scientific references.
+<h4>A web application for storing and retrieving scientific references.</h4>
 
-Comment at the first attempt to make a repository of the files of PWRef 
-existing on my disk at home:
+<h5><em>Comment at the first attempt to make a repository of the files of PWRef 
+existing on my disk at home:</em></h5>
 
 Great problems because of stupid instructions which were not for
 Windows (for Mac?). It says "Navigate to change button", but no change
