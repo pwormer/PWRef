@@ -24,8 +24,8 @@
     .tooltip_home {
         display: none;
         position: absolute;
-        right:  150px;
-        top:    100px;
+        right:  100px;
+        top:    -30px;
         width: 450px;
         padding: 20px;
     }
@@ -42,9 +42,10 @@
     <h4 style="margin-bottom: -10px; margin-top:-5px;">&nbsp;Main features of PWRef:</h4>
 
     <!-- Help info -->
-    <div class = "home_info">
+    <div class = "home_info"
+        style = "height: 0; width: 0; position: relative; top: -15px; left: 660px;">
         <img  src = "./shared/info.jpg" class = "info"  />
-        <div  class = "tooltip_home subhelp">
+        <div  class = "tooltip_home subhelp" >
         </div>
     </div>
     <!-- End Help info -->
@@ -55,10 +56,11 @@
         <li> Unlimited number of authors and editors per reference.
         <li> Protected against  XSS and buffer-overflow attacks and  SQL injections.
         <li> Two kinds of references can be handled: journal and "book".
-             ("Book" is of ten <br> <span style = "margin-left: 50px;"> subtypes: books, proceedings, PhD theses, etc.)</span>
+             ("Book" consists of ten <br> <span style = "margin-left: 50px;"> subtypes: books, proceedings, PhD theses, etc.)</span>
         <li> No user manual: relevant instructions are made visible by hovering on nearby info button.
         <li> Use of a GNU General Public License MySQL database.
-        <li> A hobby project, no commercial intents. See <a href="https://github.com/pwormer/PWRef"> for the sources </a>.
+        <li> A hobby project, no commercial intents. See
+              <a href="https://github.com/pwormer/PWRef">GitHub</a> for the sources.
         <li> All  <span style = 'font-variant: small-caps;'>html, css, javascript, php</span> sources are freely available, but ...
         <li> <span style = "margin-left: 50px;"><i>no warranties: Paul Wormer is a rooky web programmer.</i></span>
     </ul>
