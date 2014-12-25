@@ -15,6 +15,6 @@ screw up the register). Users of GitHub can handle that. I had to
 clean up my system thoroughly and download again and again before I
 got my files here. And now, how do I get rid of "xxxxxxxx"?
 
-Answer to the last question: "xxxxxxxx" is a commit remark. Make some
+<b>Answer to the last question:</b> "xxxxxxxx" is a commit remark. Make some
 changes (for instance rename), add a more meaningful comment, commit
 and sync. The more meaningful comment will replace "xxxxxxxx".
