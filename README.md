@@ -5,6 +5,7 @@ A web application for storing and retrieving scientific references.
 
 Comment at the first attempt to make a repository of the files of PWRef 
 existing on my disk at home:
+
 Great problems because of stupid instructions which were not for
 Windows (for Mac?). It says "Navigate to change button", but no change
 button in sight. And when you hit the wrong button your are left on
