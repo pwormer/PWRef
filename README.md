@@ -6,12 +6,12 @@ PWRef
 <h5><em>Comment at the first attempt to make a repository of the files of PWRef 
 existing on my disk at home:</em></h5>
 
-Great problems because of stupid instructions which were not for
+Great problems because of instructions that were not for
 Windows (for Mac?). It says "Navigate to change button", but no change
 button in sight. And when you hit the wrong button your are left drowning. 
-Shitty software, they would better say what they are doing (what directories 
+Unfriendly software, they would better say what they are doing (what directories 
 and files they pollute your directories with and in what way they
-screw up the register). Users of GitHub can handle that. I had to
+modify the register). Users of GitHub can handle that. I had to
 clean up my system thoroughly and download again and again before I
 got my files here. And now, how do I get rid of "xxxxxxxx"?
 
