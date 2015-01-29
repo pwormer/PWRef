@@ -143,15 +143,15 @@
             $(".tooltip_book_inp").load("tooltip.html")
         })
     </script>
-    <base href   = "http://www.theochem.ru.nl/~pwormer/PWRef/books/" />
+    <base href   = "http://www.theochem.ru.nl/~pwormer/PWRef/books/input/" />
     <!--
      Input through PHP does not know about <base>: prefix with ../../
-     Input through HTML recognizes <base>: prefix with ../
+     Input through HTML recognizes <base>: prefix with ../../ (when base ends with input/)
     -->
     <!--
     <base href   = "http://localhost/PWRef/books/input/" />
      -->
-    <link href   = "../PWRef.css" rel = "stylesheet" type = "text/css">
+    <link href   = "../../PWRef.css" rel = "stylesheet" type = "text/css">
     <style>
         .tooltip_book_inp {
             display: none;
@@ -564,7 +564,7 @@
                 </div>
             <!-- Help info -->
             <div class = "book_inp_info">
-                <img  src = "../shared/info.jpg" class = "info"  />
+                <img  src = "../../shared/info.jpg" class = "info"  />
                 <div  class = "tooltip_book_inp subhelp">
                 </div>
             </div>
@@ -949,7 +949,7 @@
 
                 <!-- Help info -->
                 <div class = "book_inp_info">
-                    <img  src = "../shared/info.jpg" class = "info"  />
+                    <img  src = "../../shared/info.jpg" class = "info"  />
                     <div  class = "tooltip_book_inp subhelp">
                     </div>
                 </div>
@@ -1290,7 +1290,7 @@
 
             <!-- Help info -->
             <div class = "book_inp_info">
-                <img  src = "../shared/info.jpg" class = "info"  />
+                <img  src = "../../shared/info.jpg" class = "info"  />
                 <div  class = "tooltip_book_inp subhelp">
                 </div>
             </div>
@@ -1562,7 +1562,7 @@
 
             <!-- Help info -->
             <div class = "book_inp_info">
-                <img  src = "../shared/info.jpg" class = "info"  />
+                <img  src = "../../shared/info.jpg" class = "info"  />
                 <div  class = "tooltip_book_inp subhelp">
                 </div>
             </div>
@@ -2033,7 +2033,7 @@
 
             <!-- Help info -->
             <div class = "book_inp_info">
-                <img  src = "../shared/info.jpg" class = "info"  />
+                <img  src = "../../shared/info.jpg" class = "info"  />
                 <div  class = "tooltip_book_inp subhelp">
                 </div>
             </div>
@@ -2356,7 +2356,7 @@
 
                 <!-- Help info -->
                 <div class = "book_inp_info">
-                    <img  src = "../shared/info.jpg" class = "info"  />
+                    <img  src = "../../shared/info.jpg" class = "info"  />
                     <div  class = "tooltip_book_inp subhelp">
                     </div>
                 </div>
@@ -2640,7 +2640,7 @@
 
             <!-- Help info -->
             <div class = "book_inp_info">
-                <img  src = "../shared/info.jpg" class = "info"  />
+                <img  src = "../../shared/info.jpg" class = "info"  />
                 <div  class = "tooltip_book_inp subhelp">
                 </div>
             </div>
@@ -2878,7 +2878,7 @@
 
             <!-- Help info -->
             <div class = "book_inp_info">
-                <img  src = "../shared/info.jpg" class = "info"  />
+                <img  src = "../../shared/info.jpg" class = "info"  />
                 <div  class = "tooltip_book_inp subhelp">
                 </div>
             </div>
