@@ -53,7 +53,7 @@
     </span>
 </div>
 
-<div id = "search_menu" style = "width: auto;  margin: 5px 0px 5px 200px;">
+<div id = "search_menu" style = "width: 500px;  margin: 5px 0px 5px 200px;">
     <div style = "padding: 10px 100px 0px 10px;" >
         <i>Choose any of the following possible queries:</i>
     </div>
