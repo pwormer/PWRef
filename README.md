@@ -17,7 +17,3 @@ them HTML and BiBTeX. Input can be typed in by hand or by copy/paste from digita
 existing on my home disk:</em></h5>
 
 
-
-<b>Answer to the last question:</b> "xxxxxxxx" is a commit remark. Make some
-changes at the client side (for instance rename), add a more meaningful comment, commit
-and sync (at the client). The more meaningful comment will replace "xxxxxxxx".
